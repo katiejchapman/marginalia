@@ -103,6 +103,7 @@ if(_startOver)_startOver.onclick=()=>{
   document.getElementById("surprise").classList.add("hidden");
   renderDropPanel();
 };
+(function(){const ds=document.getElementById("densSel");const saved=(localStorage.getItem("marginalia.density")||"comfortable");DENSITY=saved;if(ds){ds.value=saved;ds.onchange=()=>applyDensity(ds.value);}applyDensity(saved);})();
 document.querySelectorAll("#catFilters .chip").forEach(ch=>{ch.onclick=()=>{const k=ch.dataset.cat;CAT_FILTER[k]=CAT_FILTER[k]?0:1;ch.dataset.on=CAT_FILTER[k]?1:0;render();};});
 document.querySelectorAll("#reviewCats .chip").forEach(ch=>{ch.onclick=()=>{ch.dataset.on=ch.dataset.on==="1"?"0":"1";};});
 document.getElementById("reviewStartBtn").onclick=startReview;

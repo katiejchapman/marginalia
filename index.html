@@ -87,7 +87,7 @@
         <button class="tab" data-page="connections" data-on="0">Explore data</button>
         <button class="tab" data-page="review" data-on="0">Review</button>
         <div class="lib-switch" id="libSwitch">
-          <button class="lib-switch-btn" id="libSwitchBtn" title="Switch or manage libraries — import, restore, and import history live here"><span class="lib-switch-tag">my library</span><span id="libSwitchName">Library</span> <span class="caret">▾</span></button>
+          <button class="lib-switch-btn" id="libSwitchBtn" title="Switch or manage libraries — import, restore, and import history live here"><span class="lib-switch-tag">My Library</span><span id="libSwitchName">Library</span> <span class="caret">▾</span></button>
           <div class="lib-menu" id="libMenu"></div>
         </div>
       </div>
@@ -153,6 +153,11 @@
             <option value="added">as added</option>
             <option value="len">longest</option>
             <option value="tag">by tag</option>
+          </select>
+          <select class="filter" id="densSel" title="Row spacing">
+            <option value="comfortable">comfortable</option>
+            <option value="compact">compact</option>
+            <option value="condensed">condensed</option>
           </select>
           <button class="collapse-toggle" id="libCollapse" data-collapsed="0" title="Collapse all books" aria-label="Collapse all books"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path class="ct-up" d="M4 7 L8 3 L12 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path class="ct-dn" d="M4 9 L8 13 L12 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>

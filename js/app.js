@@ -8,6 +8,8 @@ let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true;
 const CAT_LABELS={vocab:"vocabulary",quotes:"quote",topic:"topic of interest"};
 const CAT_ORDER={vocab:0,quotes:1,topic:2,none:3};
 const CAT_COLORVAR={vocab:"--cat-vocab",quotes:"--cat-quotes",topic:"--cat-topic"};
+let DENSITY="comfortable"; // library row spacing: comfortable | compact | condensed
+function applyDensity(d){DENSITY=d||DENSITY;try{localStorage.setItem("marginalia.density",DENSITY);}catch(e){}const l=document.getElementById("list");if(l){l.classList.remove("dens-comfortable","dens-compact","dens-condensed");l.classList.add("dens-"+DENSITY);}}
 const SPINE_COLORS=["#7a1f2b","#2f4a3a","#3a3560","#6b4a1f","#5c2438","#264a52","#39402a","#5a2f28","#3f3a60","#6b3a2a"];
 const root=document.documentElement;
 
@@ -135,7 +137,7 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
   shelf.className="shelf size-"+size;
   books.forEach((b,i)=>{const color=bookColor(i);
     const sp=document.createElement("div");
-    const sv=["v-b","v-c","v-e"][Math.abs([...(b.title||"")].reduce((h,ch)=>((h<<5)-h+ch.charCodeAt(0))|0,0))%3]; // stable per-title random mix
+    const sv=["v-b","v-c","v-d","v-e"][Math.abs([...(b.title||"")].reduce((h,ch)=>((h<<5)-h+ch.charCodeAt(0))|0,0))%4]; // stable per-title random mix
     sp.className="book-spine "+sv;
     sp.innerHTML=`<div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div>`;
     sp.title=b.title+(b.author?" — "+b.author:"");
@@ -144,10 +146,6 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
   const tog=document.getElementById("bookSizeToggle");if(tog)tog.querySelectorAll("button").forEach(btn=>btn.dataset.on=btn.dataset.sz===BOOK_SIZE?1:0);}
 function render(){const list=document.getElementById("list");list.innerHTML="";const q=QUERY.toLowerCase();
   const books=groupByBook();renderShelf(books);let shown=0;
-  if(TL_BRUSH){const bb=document.createElement("div");bb.className="review-banner";
-    const f=d=>d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"2-digit"});
-    bb.innerHTML=`<span>Showing highlights from <b>${f(TL_BRUSH.start)} – ${f(TL_BRUSH.end)}</b> (timeline selection).</span><button class="btn ghost sm" id="clearBrushLib">Clear</button>`;
-    list.appendChild(bb);}
   books.forEach((book,bi)=>{const color=bookColor(bi);
     // pair Kindle notes to the highlight they annotate (same book + base location); attached notes render inline, not as their own card
     const locKey=c=>((c.loc||c.page||"")+"").split(/[-–]/)[0].trim();
@@ -156,7 +154,6 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     book.clips.forEach(c=>{if(c.type!=="note"){const ns=noteMap.get(locKey(c));if(ns&&ns.length){notesFor.set(c,ns);ns.forEach(n=>attached.add(n));}}});
     let clips=book.clips.filter(c=>{if(c.type==="note"&&attached.has(c))return false;
       if(!CAT_FILTER[c.cat])return false;
-      if(TL_BRUSH){const d=parseDate(c);if(!d||d<TL_BRUSH.start||d>=TL_BRUSH.end)return false;}
       if(q){const ns=notesFor.get(c),noteHit=ns&&ns.some(n=>n.text.toLowerCase().includes(q));
         if(!(c.text.toLowerCase().includes(q)||book.title.toLowerCase().includes(q)||(book.author||"").toLowerCase().includes(q)||noteHit))return false;}return true;});
     if(SORT==="page")clips.sort((a,b)=>pageNum(a)-pageNum(b));
@@ -180,7 +177,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
       div.innerHTML=`<div class="loc">${locTxt}${c.type==="note"?'<br><span class="pill">note</span>':""}<button class="edit-btn" title="Edit this highlight" aria-label="Edit">✎</button></div>
         <div class="body"><span class="cat-line" title="${CAT_LABELS[c.cat]||"untagged"}"></span><p class="text">${bodyHtml}</p>${notesHtml}
           <div class="meta"><div class="catpick" role="group" aria-label="Set tag">
-            ${["vocab","quotes","topic"].map(k=>`<button data-k="${k}" data-sel="${c.cat===k?1:0}" title="${CAT_LABELS[k]}"><span class="swdot"></span>${CAT_LABELS[k]}</button>`).join("")}
+            ${["vocab","quotes","topic"].map(k=>`<button data-k="${k}" data-sel="${c.cat===k?1:0}" title="${CAT_LABELS[k]}">${CAT_LABELS[k]}</button>`).join("")}
           </div>${editedTag}${updateTag}</div></div>`;
       div.querySelectorAll(".catpick button").forEach(b=>{b.onclick=()=>{
         const newCat=(c.cat===b.dataset.k)?"none":b.dataset.k;c.cat=newCat;c.catLocked=true;
@@ -194,7 +191,6 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
   if(!shown){const e=document.createElement("div");e.className="empty";
     e.textContent="No highlights match these filters.";
     list.appendChild(e);}
-  const cb=document.getElementById("clearBrushLib");if(cb)cb.onclick=()=>{TL_BRUSH=null;render();};
   document.getElementById("statClips").textContent=STATE.clips.length;document.getElementById("statBooks").textContent=books.length;}
 
 /* ---------- Inline editing ---------- */
@@ -362,7 +358,7 @@ function toast(m){const t=document.createElement("div");t.className="toast";t.te
 
 /* ---------- Timeline ---------- */
 function parseDate(c){if(!c.added)return null;const d=new Date(c.added);return isNaN(d)?null:d;}
-let TL_BRUSH=null; // {start:Date,end:Date} applied as a library filter
+let TL_BRUSH=null; // {start:Date,end:Date} — the timeline's focused date range (drives the recap; does NOT filter the Library)
 function renderTimeline(){
   const dated=STATE.clips.filter(c=>c.type!=="note"&&parseDate(c));
   const head=document.getElementById("tlHead"),chart=document.getElementById("tlChart"),axis=document.getElementById("tlAxis"),stats=document.getElementById("tlStats");
@@ -423,7 +419,7 @@ function renderTimeline(){
     h0.style.left=(f0*100)+"%";h1.style.left=(f1*100)+"%";
     range.style.left=(lo*100)+"%";range.style.width=((hi-lo)*100)+"%";
     const full=lo<=0.0001&&hi>=0.9999;
-    stateLab.textContent=full?"Drag a handle to filter the library":`Filtering library: ${fmtD(dateAt(lo))} – ${fmtD(dateAt(hi))}`;
+    stateLab.textContent=full?"Drag to adjust range":`Range: ${fmtD(dateAt(lo))} – ${fmtD(dateAt(hi))}`;
     readout.style.display="none";
     const s=dateAt(lo),e=new Date(+dateAt(hi)+1);
     const inRange=dated.filter(c=>{const d=parseDate(c);return d&&d>=s&&d<e;});
@@ -454,9 +450,8 @@ function renderTimeline(){
 
   renderBrushBar();
   function renderBrushBar(){if(!brushBar)return;
-    if(TL_BRUSH){brushBar.innerHTML=`<button class="btn sm" id="tlGoLib">View ${dated.filter(c=>{const d=parseDate(c);return d&&d>=TL_BRUSH.start&&d<TL_BRUSH.end;}).length} in Library</button><button class="btn ghost sm" id="tlClearBrush">Reset range</button>`;
-      document.getElementById("tlGoLib").onclick=()=>{document.querySelector('.tab[data-page="library"]').click();render();document.getElementById("list").scrollIntoView({behavior:"smooth"});};
-      document.getElementById("tlClearBrush").onclick=()=>{TL_BRUSH=null;f0=0;f1=1;paint();renderBrushBar();render();};
+    if(TL_BRUSH){brushBar.innerHTML=`<button class="btn ghost sm" id="tlClearBrush">Reset range</button>`;
+      document.getElementById("tlClearBrush").onclick=()=>{TL_BRUSH=null;f0=0;f1=1;paint();renderBrushBar();};
     }else brushBar.innerHTML="";}
 }
 function longestStreakWeeks(sortedDates){if(!sortedDates.length)return 0;
@@ -856,19 +851,21 @@ function renderDeckContents(){const box=document.getElementById("deckContents");
     <div class="deck-toolbar">
       <span class="deck-head-lab">Deck contents</span>
       <span class="deck-sub">${vocab.length} vocab · ${topics.length} topics</span>
-      <span class="deck-sort">
+      <span class="deck-group">
         <button data-grp="tag" data-on="${DECK_GROUP==="tag"?1:0}">by tag</button>
         <button data-grp="book" data-on="${DECK_GROUP==="book"?1:0}">by book</button>
-        <button data-sort="rare" data-on="${DECK_SORT==="rare"?1:0}">rare</button>
-        <button data-sort="reviewed" data-on="${DECK_SORT==="reviewed"?1:0}">reviewed</button>
-        <button data-sort="hard" data-on="${DECK_SORT==="hard"?1:0}">hardest</button>
       </span>
+      <select class="filter deck-sortsel" id="deckSortSel" title="Sort terms">
+        <option value="rare"${DECK_SORT==="rare"?" selected":""}>rarest first</option>
+        <option value="reviewed"${DECK_SORT==="reviewed"?" selected":""}>most reviewed</option>
+        <option value="hard"${DECK_SORT==="hard"?" selected":""}>hardest first</option>
+      </select>
     </div>
     <div class="deck-sections">${sections}</div>
     ${flaggedCards.length?`<div class="deck-flagged-sec"><div class="dfh">⚑ Flagged (${flaggedCards.length}) <button class="btn ghost sm" id="reviewFlagged">Review flagged</button> <button class="btn ghost sm" id="clearFlagged">Clear all</button></div><div>${flaggedCards.map(c=>`<span class="flag-card" title="${escAttr(cleanTitle(c.title))}">${escHtml(c.cat==="vocab"&&isVocabWord(c)?vocabTermOf(c):(c.text.length>40?c.text.slice(0,38)+"…":c.text))}<button data-unflag="${escAttr(cardId(c))}" title="Remove flag" aria-label="Remove flag">✕</button></span>`).join("")}</div></div>`:""}
   `;
-  box.querySelectorAll(".deck-sort button[data-grp]").forEach(b=>b.onclick=()=>{DECK_GROUP=b.dataset.grp;renderDeckContents();});
-  box.querySelectorAll(".deck-sort button[data-sort]").forEach(b=>b.onclick=()=>{DECK_SORT=b.dataset.sort;renderDeckContents();});
+  box.querySelectorAll(".deck-group button[data-grp]").forEach(b=>b.onclick=()=>{DECK_GROUP=b.dataset.grp;renderDeckContents();});
+  const dss=document.getElementById("deckSortSel");if(dss)dss.onchange=()=>{DECK_SORT=dss.value;renderDeckContents();};
   box.querySelectorAll(".add-deck").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId.get(b.dataset.add);if(c)chooseDeckFor(c);});
   box.querySelectorAll(".deck-word").forEach(w=>w.onclick=()=>{QUERY=w.dataset.q;const qel=document.getElementById("q");if(qel)qel.value=QUERY;document.querySelector('.tab[data-page="library"]').click();render();document.getElementById("list").scrollIntoView({behavior:"smooth"});});
   const rf=document.getElementById("reviewFlagged");if(rf)rf.onclick=()=>startFlaggedReview();
