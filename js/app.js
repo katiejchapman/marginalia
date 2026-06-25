@@ -409,8 +409,9 @@ function renderTimeline(){
     let html="";
     for(let d=new Date(domMin);d<domMax;d=addMonths(d,1)){
       const f=(+d- +domMin)/span2,mo=d.getMonth(),isQ=mo%3===0,isYear=mo===0;
-      html+=`<div class="tk${isQ?" q":""}" style="left:${(f*100).toFixed(2)}%"></div>`;
-      if(isQ)html+=`<div class="tkl" style="left:${(f*100).toFixed(2)}%">${isYear?d.getFullYear():d.toLocaleDateString(undefined,{month:"short"})}</div>`;
+      if(!isQ)continue; // labeled (quarter) ticks only — no minor month ticks
+      html+=`<div class="tk q" style="left:${(f*100).toFixed(2)}%"></div>`;
+      html+=`<div class="tkl" style="left:${(f*100).toFixed(2)}%">${isYear?d.getFullYear():d.toLocaleDateString(undefined,{month:"short"})}</div>`;
     }
     layer.innerHTML=html;
   })();
@@ -419,7 +420,7 @@ function renderTimeline(){
     h0.style.left=(f0*100)+"%";h1.style.left=(f1*100)+"%";
     range.style.left=(lo*100)+"%";range.style.width=((hi-lo)*100)+"%";
     const full=lo<=0.0001&&hi>=0.9999;
-    stateLab.textContent=full?"Drag to adjust range":`Range: ${fmtD(dateAt(lo))} – ${fmtD(dateAt(hi))}`;
+    stateLab.textContent=full?"Drag to adjust range":`${fmtD(dateAt(lo))} – ${fmtD(dateAt(hi))}`;
     readout.style.display="none";
     const s=dateAt(lo),e=new Date(+dateAt(hi)+1);
     const inRange=dated.filter(c=>{const d=parseDate(c);return d&&d>=s&&d<e;});
@@ -667,15 +668,16 @@ function renderTimelineInsights(clips,start,end){const recap=document.getElement
 }
 /* ---------- Visitor counter (real global count via free CountAPI) ---------- */
 async function updateVisitorInfo(){const el=document.getElementById("visitorInfo");if(!el)return;
-  let countTxt="";
+  let n=null;
   try{const seen=sessionStorage.getItem("marginalia.counted");
     const url=seen?"https://api.countapi.xyz/get/marginalia.app/visits"
                   :"https://api.countapi.xyz/hit/marginalia.app/visits";
-    const r=await fetch(url);if(r.ok){const j=await r.json();if(typeof j.value==="number"){countTxt=j.value.toLocaleString()+" visits";sessionStorage.setItem("marginalia.counted","1");}}
+    const r=await fetch(url);if(r.ok){const j=await r.json();if(typeof j.value==="number"){n=j.value;sessionStorage.setItem("marginalia.counted","1");}}
   }catch(e){}
-  let place="";
-  try{const r=await fetch("https://ipapi.co/json/");if(r.ok){const j=await r.json();place=j.country_name||j.country||"";}}catch(e){}
-  el.textContent=[countTxt,place].filter(Boolean).join(" · ");
+  let code="";
+  try{const r=await fetch("https://ipapi.co/json/");if(r.ok){const j=await r.json();code=(j.country_code||j.country||"").toUpperCase();}}catch(e){}
+  if(n==null){el.textContent=code?`(${code})`:"";return;}
+  el.textContent=`${n.toLocaleString()} visitor${n===1?"":"s"}${code?` (${code})`:""}`;
 }
 function vocabRarity(w){w=(w||"").toLowerCase();
   // offline rarity proxy: longer words and uncommon letter patterns rank higher;
@@ -955,10 +957,10 @@ async function drawReviewCard(){
       <div class="rv-front ${frontCls}${cz.kind==="quote"?" is-quote":""}">${escHtml(cz.front)} ${cz.hint?`<span class="rv-hintlabel">${cz.hint}</span>`:""}</div>
       <div class="rv-back" id="rvBack" style="display:none"><div class="rv-loading">Looking up…</div></div>
       <div class="rv-src">${escHtml(cleanTitle(c.title))}${c.author?" · "+escHtml(c.author):""}${c.page?" · p."+escHtml(c.page):""}</div>
-      <div class="rv-cardbtns"><button class="btn ghost sm" id="rvFind">Find in library</button><button class="btn ghost sm" id="rvAddDeck">＋ Add to deck</button></div>
       <div class="rv-controls" id="rvControls">
         <button class="btn ghost" id="rvFlip">Flip (Space)</button>
       </div>
+      <div class="rv-cardbtns"><button class="rv-minilink" id="rvFind">Find in library</button><button class="rv-minilink" id="rvAddDeck">Add to deck</button></div>
     </div>`;
   RV.flipped=false;
   document.getElementById("rvFlip").onclick=flipReviewCard;
@@ -1258,11 +1260,12 @@ function renderMastDivider(){const el=document.getElementById("mastDivider");if(
   const W=104,H=26,c=13,a=7;
   const gold=`M0 ${c} C ${W*0.125} ${c-a}, ${W*0.375} ${c-a}, ${W/2} ${c} C ${W*0.625} ${c+a}, ${W*0.875} ${c+a}, ${W} ${c}`;
   const lapis=`M0 ${c} C ${W*0.125} ${c+a}, ${W*0.375} ${c+a}, ${W/2} ${c} C ${W*0.625} ${c-a}, ${W*0.875} ${c-a}, ${W} ${c}`;
+  // a spine-style glyph at the crossing point, instead of a plain dot
+  const SYMS=["❧","✦","❦","✥","❀"],sym=SYMS[Math.floor(Math.random()*SYMS.length)];
   const tile=`
     <path d="${lapis}" fill="none" stroke="var(--lapis)" stroke-width="1.5" stroke-linecap="round" opacity="0.82"/>
     <path d="${gold}" fill="none" stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round"/>
-    <circle cx="0" cy="${c}" r="1.9" fill="var(--gold)"/>
-    <circle cx="${W/2}" cy="${c}" r="1.9" fill="var(--gold)"/>`;
+    <text x="${W/2}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="var(--gold)">${sym}</text>`;
   el.innerHTML=`<svg width="100%" height="${H}" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
     <defs><pattern id="plaitTile" width="${W}" height="${H}" patternUnits="userSpaceOnUse">${tile}</pattern></defs>
     <rect x="0" y="0" width="100%" height="${H}" fill="url(#plaitTile)"/>

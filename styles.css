@@ -52,7 +52,7 @@
   .mast .count b{display:block;font-size:30px;color:var(--ink);font-family:var(--display);font-weight:600;line-height:1}
 
   .ctrls{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
-  .toggle{display:inline-flex;border:1px solid var(--rule-strong);border-radius:99px;overflow:hidden;background:var(--card)}
+  .toggle{display:inline-flex;border:1px solid var(--rule-strong);border-radius:6px;overflow:hidden;background:var(--card)}
   .toggle button{background:transparent;border:none;cursor:pointer;padding:7px 11px;color:var(--ink-soft);font-family:var(--head);font-size:14px;letter-spacing:0;text-transform:none;display:flex;align-items:center;gap:5px;transition:.12s;font-weight:500}
   .toggle button[data-on="1"]{background:var(--accent);color:var(--paper)}
 
@@ -79,7 +79,7 @@
   .surprise:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
     background:repeating-linear-gradient(180deg,transparent 0 19px,var(--card-rule) 19px 20px)}
   .surprise>*{position:relative;z-index:2}
-  .surprise .sp-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
+  .surprise .sp-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .surprise .sp-lab{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
   .surprise .sp-text{font-family:var(--mono);font-style:normal;font-size:12px;line-height:20px;margin-top:0;color:var(--ink);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
   .surprise .sp-text.is-vocab{font-style:normal;font-size:15px;font-weight:600;letter-spacing:.04em;color:var(--accent)}
@@ -194,9 +194,15 @@
   .clip .clip-note .cn-lab{font-family:var(--mono);font-style:normal;font-size:8.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-2);margin-right:8px}
   /* library row density (adjustable) */
   #list.dens-compact .clip{padding:11px 0}
-  #list.dens-compact .clip .text{font-size:16.5px;line-height:1.5}
+  #list.dens-compact .clip .text{font-size:16.5px;line-height:1.5;margin-bottom:6px}
+  #list.dens-compact .clip .meta{margin-top:6px}
+  #list.dens-compact .clip .body{padding-left:11px}
+  #list.dens-compact .clip .cat-line{width:2.5px}
   #list.dens-condensed .clip{padding:7px 0}
-  #list.dens-condensed .clip .text{font-size:14.5px;line-height:1.42}
+  #list.dens-condensed .clip .text{font-size:14.5px;line-height:1.42;margin-bottom:3px}
+  #list.dens-condensed .clip .meta{margin-top:3px}
+  #list.dens-condensed .clip .body{padding-left:9px}
+  #list.dens-condensed .clip .cat-line{width:2px}
   #list.dens-compact .clip .clip-note,#list.dens-condensed .clip .clip-note{font-size:13px;padding:5px 10px;margin:6px 0 1px}
   .clip .meta{display:flex;gap:14px;align-items:center;margin-top:10px;flex-wrap:wrap}
   .term{border-bottom:1px dotted var(--ink-soft);cursor:inherit;text-decoration-skip-ink:none}
@@ -734,7 +740,9 @@
   .rv-cat.c-vocab{color:var(--cat-vocab)}.rv-cat.c-topic{color:var(--cat-topic)}
   .rv-cat.lab{background:none;border:none;padding:0;font-family:var(--head);font-size:13px;letter-spacing:.02em}
   .rv-front.is-vocab{color:var(--cat-vocab)}.rv-front.is-topicc{color:var(--cat-topic)}
-  .rv-cardbtns{display:flex;gap:8px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+  .rv-cardbtns{display:flex;gap:18px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+  .rv-minilink{background:none;border:none;padding:0;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);opacity:.65;transition:.12s}
+  .rv-minilink:hover{opacity:1;color:var(--accent)}
   .deck-choose-ov{position:fixed;inset:0;background:rgba(20,14,8,.45);display:flex;align-items:center;justify-content:center;z-index:120}
   .deck-choose{background:var(--card);border:1px solid var(--rule-strong);border-radius:10px;box-shadow:var(--shadow);padding:14px;min-width:240px;max-width:320px}
   .deck-choose .dc-h{font-family:var(--display);font-size:18px;color:var(--accent);margin-bottom:10px}
