@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>marginalia — kindle notes organizer</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect x='6' y='6' width='88' height='88' rx='8' fill='%23c9a84a'/%3E%3Crect x='12' y='12' width='76' height='76' rx='5' fill='%231f4d8f'/%3E%3Ctext x='50' y='78' font-family='Georgia,serif' font-size='74' font-weight='700' fill='%23f4e6c2' text-anchor='middle'%3EM%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=UnifrakturMaguntia&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -20,6 +21,9 @@
     --rule:#c9b48c;--rule-strong:#ad8f5e;--card:#faf4e4;--paper-deep:#c2a877;
     --shadow:0 1px 0 rgba(255,250,235,.5),0 14px 34px -20px rgba(70,46,14,.55);
     --shelf-wood:#b8945f;--shelf-edge:#8a6a3a;--vignette:0.38;
+    /* deeper gold so the accent reads on the lighter parchment */
+    --accent:#a87f24;--gold:#a87f24;--term-line:#a87f24;--cat-vocab:#a87f24;
+    --highlighter:rgba(168,127,36,.20);
   }
   /* ===== Scriptorium palette (baked in) ===== */
   :root{
@@ -53,7 +57,7 @@
   .wordmark{display:flex;align-items:center;font-family:var(--title);font-size:60px;font-weight:600;line-height:.95;letter-spacing:-1px}
   .wordmark svg{width:90px;height:90px;margin-right:-2px;margin-left:-4px;flex:none;vertical-align:middle;position:relative;top:-3px}
   .wordmark .rest{color:var(--gold)}
-  .mast .sub{font-family:var(--body);font-size:15px;font-style:italic;color:var(--ink-soft);margin-top:10px;max-width:560px}
+  .mast .sub{font-family:"Spectral",Georgia,serif;font-size:16px;font-style:normal;color:var(--ink-soft);margin-top:10px;max-width:560px;letter-spacing:.01em}
   .mast .topright{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
   .mast .count{font-family:var(--head);font-size:14px;color:var(--ink-soft);text-align:right;border-left:1px solid var(--rule);padding-left:18px}
   .mast .count b{display:block;font-size:30px;color:var(--ink);font-family:var(--display);font-weight:600;line-height:1}
@@ -78,14 +82,21 @@
   [data-mode="light"] .tab[data-on="1"]:after{background:rgba(173,143,94,.18)}
 
   /* surprise me banner */
-  .surprise{max-width:320px;text-align:right;background:var(--panel);border:1px solid var(--rule-strong);border-right:3px solid var(--gold);border-radius:6px;padding:9px 12px;margin-top:4px}
+  /* surprise me — index card */
+  :root,[data-mode="dark"]{--card-rule:rgba(168,149,124,.14)}
+  [data-mode="light"]{--card-rule:rgba(111,86,52,.16)}
+  .surprise{position:relative;max-width:340px;text-align:left;background:var(--card);border:1px solid var(--rule-strong);border-radius:7px;padding:14px 16px 13px 26px;margin-top:6px;box-shadow:var(--shadow);overflow:hidden}
+  .surprise:before{content:"";position:absolute;left:16px;top:0;bottom:0;width:1.5px;background:var(--accent-2);opacity:.55;z-index:1}
+  .surprise:after{content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+    background:repeating-linear-gradient(180deg,transparent 0 25px,var(--card-rule) 25px 26px)}
+  .surprise>*{position:relative;z-index:2}
   .surprise .sp-row{display:flex;align-items:center;justify-content:flex-end;gap:8px}
   .surprise .sp-lab{font-family:var(--head);font-size:13px;letter-spacing:0;text-transform:none;color:var(--gold)}
-  .surprise .sp-text{font-family:var(--display);font-style:italic;font-size:15px;line-height:1.45;margin-top:5px;color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-  .surprise .sp-text.is-vocab{font-style:normal;font-size:20px;font-weight:600;color:var(--accent)}
-  .surprise .sp-src{font-family:var(--head);font-size:12px;color:var(--ink-soft);margin-top:5px}
-  .surprise .sp-again{background:transparent;border:1px solid var(--rule-strong);color:var(--ink);border-radius:99px;width:22px;height:22px;cursor:pointer;font-size:11px;flex:none;line-height:1;padding:0}
-  .surprise .sp-again:hover{background:var(--accent);color:var(--paper)}
+  .surprise .sp-text{font-family:var(--display);font-style:italic;font-size:16px;line-height:1.5;margin-top:2px;color:var(--ink);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .surprise .sp-text.is-vocab{font-style:normal;font-size:21px;font-weight:600;color:var(--accent)}
+  .surprise .sp-src{font-family:var(--head);font-size:12px;color:var(--ink-soft);margin-top:8px;text-align:right;font-style:italic}
+  .surprise .sp-again{background:var(--card);border:1px solid var(--rule-strong);color:var(--ink-soft);border-radius:99px;width:24px;height:24px;cursor:pointer;font-size:12px;flex:none;line-height:1;padding:0}
+  .surprise .sp-again:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
 
   .btn{font-family:var(--head);font-size:15px;letter-spacing:0;text-transform:none;background:var(--accent);color:var(--paper);border:none;padding:10px 18px;border-radius:3px;cursor:pointer;transition:.12s;font-weight:500}
   .btn:hover{filter:brightness(1.1)}
@@ -117,20 +128,21 @@
   .shelf.size-m .book-spine{height:172px;width:46px}
   .shelf.size-l .book-spine{height:200px;width:52px}
   .shelf{position:relative;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:20px 18px 0;border-radius:4px 4px 0 0;background:linear-gradient(180deg,transparent,rgba(0,0,0,.08))}
+  [data-mode="light"] .shelf{background:linear-gradient(180deg,rgba(184,148,95,.04),rgba(138,106,58,.12))}
   .shelf:after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:13px;background:linear-gradient(180deg,var(--shelf-wood),var(--shelf-edge));border-radius:0 0 3px 3px;box-shadow:0 7px 16px -6px rgba(0,0,0,.55)}
   /* book: spine that widens to a cover (Title-2 crossfade) */
   .book-spine{position:relative;height:200px;width:52px;cursor:pointer;border-radius:4px;overflow:hidden;
     box-shadow:inset -5px 0 10px -4px rgba(0,0,0,.5),inset 4px 0 5px -2px rgba(255,255,255,.12),0 6px 14px -5px rgba(0,0,0,.55);
     transition:width .5s cubic-bezier(.34,.05,.2,1),border-radius .4s ease}
   .book-spine .cloth{position:absolute;inset:0;filter:url(#clothTex)}
-  .book-spine .band{position:absolute;left:0;right:0;height:9px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(0,0,0,.3));z-index:2;transition:opacity .35s}
-  .book-spine .band.t{top:20px}.book-spine .band.b{bottom:24px}
+  .book-spine .band{position:absolute;left:9px;right:9px;height:0;border-top:1.4px solid rgba(232,210,120,.55);box-shadow:0 3px 0 -1.4px rgba(232,210,120,.30);z-index:2;transition:opacity .35s}
+  .book-spine .band.t{top:22px}.book-spine .band.b{bottom:26px}
   .book-spine .cover-orn{position:absolute;inset:8px;border:1.5px solid rgba(232,210,120,.6);border-radius:3px;z-index:3;opacity:0;transition:opacity .4s .15s}
   .book-spine .vtitle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:4;color:rgba(255,244,228,.97);text-shadow:0 1px 2px rgba(0,0,0,.7);font-weight:600;font-size:12.5px;writing-mode:vertical-rl;transform:rotate(180deg);padding:14px 0;text-align:center;transition:opacity .25s;letter-spacing:.02em}
-  .book-spine .htitle{position:absolute;top:30px;left:11px;right:11px;text-align:center;z-index:4;color:#f4e6c2;font-weight:600;font-size:16px;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.6);opacity:0;transition:opacity .35s .2s}
+  .book-spine .htitle{position:absolute;top:34px;left:9px;right:9px;text-align:center;z-index:4;color:#f4e6c2;font-weight:600;font-size:14px;line-height:1.22;text-shadow:0 1px 3px rgba(0,0,0,.6);opacity:0;transition:opacity .35s .2s}
   .book-spine .cauthor{position:absolute;bottom:20px;left:10px;right:10px;text-align:center;color:rgba(244,230,194,.82);font-style:italic;font-size:11px;z-index:4;opacity:0;transition:opacity .4s .15s}
   .book-spine .scount{position:absolute;bottom:5px;left:0;right:0;text-align:center;font-family:var(--mono);font-size:8px;color:rgba(255,235,200,.6);z-index:3}
-  .shelf .book-spine:hover{width:158px;z-index:20}
+  .shelf .book-spine:hover{width:118px;z-index:20}
   .shelf .book-spine:hover .vtitle,.shelf .book-spine:hover .scount{opacity:0}
   .shelf .book-spine:hover .htitle,.shelf .book-spine:hover .cover-orn,.shelf .book-spine:hover .cauthor{opacity:1}
   .shelf .book-spine:hover .band{opacity:0}
@@ -138,20 +150,20 @@
   /* ===== toolbar ===== */
   .toolbar{position:sticky;top:0;z-index:30;background:var(--paper);border-bottom:1px solid var(--rule);padding:14px 0;margin-bottom:8px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
   .search{flex:1;min-width:220px;position:relative}
+  .search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:transparent;border:none;color:var(--ink-soft);cursor:pointer;font-size:13px;width:22px;height:22px;border-radius:99px;line-height:1}
+  .search-clear:hover{background:var(--rule);color:var(--ink)}
   .search input{width:100%;border:1px solid var(--rule);background:var(--card);border-radius:3px;padding:9px 12px 9px 30px;font-family:var(--body);font-size:15px;color:var(--ink)}
   .search:before{content:"\2315";position:absolute;left:9px;top:7px;font-size:17px;color:var(--ink-soft)}
   select.filter{border:1px solid var(--rule);background:var(--card);border-radius:3px;padding:8px 11px;font-family:var(--head);font-size:15px;color:var(--ink);font-weight:500}
-  .cats{display:flex;gap:7px;flex-wrap:wrap}
-  .chip{font-family:var(--mono);font-size:12px;letter-spacing:.05em;text-transform:lowercase;border:1px solid var(--rule);background:var(--card);color:var(--ink-soft);padding:6px 12px;border-radius:99px;cursor:pointer;transition:.12s;display:flex;gap:6px;align-items:center;font-weight:400}
-  .chip .dot{width:8px;height:8px;border-radius:99px}
-  .chip[data-on="1"]{color:#fff;border-color:transparent;justify-content:center;padding:6px 15px}
-  .chip[data-on="1"] .dot{display:none}
-  .chip.c-vocab[data-on="1"]{background:var(--cat-vocab);color:#2a2014}.chip.c-quotes[data-on="1"]{background:var(--cat-quotes)}
-  .chip.c-topic[data-on="1"]{background:var(--cat-topic)}.chip.c-none[data-on="1"]{background:var(--cat-none)}
+  .cats{display:flex;gap:14px;flex-wrap:wrap}
+  .chip{font-family:var(--head);font-size:14px;letter-spacing:0;text-transform:none;border:none;background:transparent;color:var(--ink-soft);padding:4px 2px;border-radius:0;cursor:pointer;transition:.12s;display:flex;gap:7px;align-items:center;font-weight:500;opacity:.48}
+  .chip .dot{width:11px;height:11px;border-radius:2px;flex:none}
+  .chip[data-on="1"]{color:var(--ink);opacity:1}
+  .chip[data-on="1"] .dot{display:inline-block}
 
   /* ===== book section + bookmark ribbon ===== */
   .book{margin-top:34px;scroll-margin-top:80px}
-  .book-head{position:relative;display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;margin-bottom:2px;cursor:pointer;padding-left:40px}
+  .book-head{position:sticky;top:57px;z-index:6;background:var(--paper);display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;padding-top:6px;margin-bottom:2px;cursor:pointer;padding-left:40px}
   .ribbon{position:absolute;left:6px;top:-6px;width:20px;height:50px;box-shadow:0 2px 4px rgba(0,0,0,.4);z-index:2}
   .ribbon:after{content:"";position:absolute;bottom:-8px;left:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:8px solid var(--rcol,#6e2a26)}
   .ribbon:before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:7px;height:7px;border:1px solid rgba(232,210,120,.6);border-radius:50%}
@@ -272,10 +284,14 @@
   .tl-readout{min-height:20px;margin-top:10px;font-family:var(--head);font-size:14px;color:var(--ink);display:none}
   .tl-slider{position:relative;height:42px;margin:10px 2px 0}
   .tl-track{position:absolute;left:0;right:0;top:19px;height:6px;border-radius:3px;background:repeating-linear-gradient(90deg,var(--rule-strong) 0,var(--rule-strong) 1px,transparent 1px,transparent 12px),var(--panel);border:1px solid var(--rule)}
-  .tl-range{position:absolute;top:19px;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--accent),var(--accent-2,var(--accent)));opacity:.85}
+  .tl-range{position:absolute;top:19px;height:6px;border-radius:3px;background:var(--accent);opacity:.85}
   .tl-handle{position:absolute;top:6px;width:18px;height:34px;margin-left:-9px;background:var(--accent);cursor:grab;touch-action:none;
     clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%);box-shadow:0 3px 6px -2px rgba(0,0,0,.5);transition:filter .1s}
-  .tl-handle::after{content:"";position:absolute;left:50%;top:5px;transform:translateX(-50%);width:2px;height:14px;background:rgba(0,0,0,.18);border-radius:2px}
+  .tl-handle::after{content:none}
+  .tl-ticks{position:absolute;left:0;right:0;top:16px;height:12px;pointer-events:none}
+  .tl-ticks .tk{position:absolute;top:0;width:1px;height:8px;background:var(--rule-strong);opacity:.55}
+  .tl-ticks .tk.q{height:12px;opacity:.85}
+  .tl-ticks .tkl{position:absolute;top:13px;transform:translateX(-50%);font-family:var(--mono);font-size:9px;color:var(--ink-soft);white-space:nowrap}
   .tl-handle:hover{filter:brightness(1.08)}
   .tl-handle:active{cursor:grabbing}
   .tl-handle:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
@@ -298,7 +314,8 @@
   .bs-row{padding:14px 0;border-bottom:1px solid var(--rule)}
   .bs-head{display:flex;align-items:baseline;gap:12px}
   .bs-title{font-family:var(--display);font-size:19px;font-weight:600;color:var(--ink)}
-  .bs-author{font-family:var(--head);font-style:italic;font-size:14px;color:var(--ink-soft);flex:1}
+  .bs-author{font-family:var(--head);font-style:italic;font-size:14px;color:var(--ink-soft)}
+  .bs-headspacer{flex:1}
   .bs-count{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
   .bs-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin:8px 0 6px;background:var(--paper-2)}
   .bs-bar span{display:block;height:100%}
@@ -552,8 +569,8 @@
     border:1px solid rgba(201,168,74,.22)
   }
   .gate-tagline{
-    font-family:var(--head);font-style:italic;font-size:17px;color:#b7a07e;
-    max-width:440px;line-height:1.45;margin-top:-2px
+    font-family:"Spectral",Georgia,serif;font-style:normal;font-size:18px;color:#c2ab85;
+    max-width:460px;line-height:1.45;margin-top:-2px;letter-spacing:.01em
   }
   .gate-wordmark{
     display:flex;align-items:center;font-family:var(--title);font-size:78px;font-weight:600;
@@ -676,7 +693,37 @@
   .lib-mini:hover{border-color:var(--accent);color:var(--accent)}
   .lib-menu-actions{display:flex;gap:7px;margin-top:10px;padding-top:8px;border-top:1px solid var(--rule)}
   .lib-menu-empty{font-family:var(--head);color:var(--ink-soft);padding:6px 8px}
-  .visitor-info{font-family:var(--mono);font-size:10px;color:var(--ink-soft);opacity:.7;text-align:right;margin-top:4px}
+  /* review additions */
+  .deck-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+  .deck-toolbar .deck-head-lab{font-family:var(--display);font-size:18px;color:var(--accent)}
+  .deck-sort{margin-left:auto;display:flex;gap:4px}
+  .deck-sort button,.deck-groupby button{font-family:var(--head);font-size:12px;background:transparent;border:1px solid var(--rule);color:var(--ink-soft);border-radius:99px;padding:3px 11px;cursor:pointer}
+  .deck-sort button[data-on="1"],.deck-groupby button[data-on="1"]{background:var(--accent);color:var(--paper);border-color:var(--accent)}
+  .deck-word .rvn{font-family:var(--mono);font-size:9px;color:var(--ink-soft);opacity:.7;margin-left:5px;vertical-align:super}
+  .deck-word{position:relative}
+  .deck-word .add-deck{display:none;position:absolute;top:-7px;right:-7px;width:17px;height:17px;border-radius:99px;background:var(--accent);color:var(--paper);border:none;font-size:11px;line-height:15px;cursor:pointer;padding:0}
+  .deck-word:hover .add-deck{display:block}
+  .deck-flagged-sec{margin-top:14px;border-top:1px dashed var(--rule-strong);padding-top:10px}
+  .deck-flagged-sec .dfh{font-family:var(--head);font-size:13px;color:var(--ink-soft);margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .flag-card{display:inline-flex;align-items:center;gap:6px;background:var(--paper-2);border:1px solid var(--rule);border-radius:6px;padding:4px 6px 4px 10px;margin:0 6px 6px 0;font-family:var(--head);font-size:13px;color:var(--ink)}
+  .flag-card button{background:transparent;border:none;color:var(--ink-soft);cursor:pointer;font-size:12px}
+  .flag-card button:hover{color:var(--accent-2)}
+  .rv-sessions{margin-top:18px}
+  .rv-sessions>summary{cursor:pointer;font-family:var(--head);font-size:14px;color:var(--ink-soft);list-style:none}
+  .rv-sessions>summary::-webkit-details-marker{display:none}
+  .rv-sessions>summary::before{content:"▸ ";color:var(--accent)}
+  .rv-sessions[open]>summary::before{content:"▾ "}
+  .rv-cat.c-vocab{color:var(--cat-vocab)}.rv-cat.c-topic{color:var(--cat-topic)}
+  .rv-cat.lab{background:none;border:none;padding:0;font-family:var(--head);font-size:13px;letter-spacing:.02em}
+  .rv-front.is-vocab{color:var(--cat-vocab)}.rv-front.is-topicc{color:var(--cat-topic)}
+  .rv-cardbtns{display:flex;gap:8px;justify-content:center;margin-top:6px;flex-wrap:wrap}
+  .deck-choose-ov{position:fixed;inset:0;background:rgba(20,14,8,.45);display:flex;align-items:center;justify-content:center;z-index:120}
+  .deck-choose{background:var(--card);border:1px solid var(--rule-strong);border-radius:10px;box-shadow:var(--shadow);padding:14px;min-width:240px;max-width:320px}
+  .deck-choose .dc-h{font-family:var(--display);font-size:18px;color:var(--accent);margin-bottom:10px}
+  .deck-choose .dc-opt{display:block;width:100%;text-align:left;background:var(--paper-2);border:1px solid var(--rule);border-radius:7px;padding:9px 12px;margin-bottom:7px;font-family:var(--head);font-size:14px;color:var(--ink);cursor:pointer}
+  .deck-choose .dc-opt:hover{border-color:var(--accent);color:var(--accent)}
+  .deck-choose .dc-new{color:var(--accent)}
+  .deck-choose .dc-cancel{background:transparent;border:none;color:var(--ink-soft);font-family:var(--head);font-size:13px;cursor:pointer;margin-top:2px}
 </style>
 </head>
 <body class="lampcursor">
@@ -800,7 +847,7 @@
     </div>
     <div id="app" class="hidden">
       <div class="shelf-wrap" id="shelfWrap">
-        <div class="shelf-bar"><div class="shelf-title">On the shelf — hover over a book to open it, or click to jump to its highlights</div>
+        <div class="shelf-bar"><div class="shelf-title">Bookshelf — hover to view a cover, click to jump to its highlights</div>
           <div class="book-size-toggle" id="bookSizeToggle" title="Book size">
             <button data-sz="s" data-on="0">S</button><button data-sz="m" data-on="1">M</button><button data-sz="l" data-on="0">L</button>
           </div>
@@ -808,12 +855,12 @@
         <div class="shelf" id="shelf"></div>
       </div>
       <div class="toolbar">
-        <div class="search"><input id="q" placeholder="Search highlights, books, notes…"></div>
+        <div class="search"><input id="q" placeholder="Search highlights, books, notes…"><button id="clearSearch" class="search-clear" type="button" aria-label="Clear search" style="display:none">✕</button></div>
         <div class="cats" id="catFilters">
           <button class="chip c-vocab" data-cat="vocab" data-on="1"><span class="dot" style="background:var(--cat-vocab)"></span>vocabulary</button>
           <button class="chip c-quotes" data-cat="quotes" data-on="1"><span class="dot" style="background:var(--cat-quotes)"></span>quotes</button>
           <button class="chip c-topic" data-cat="topic" data-on="1"><span class="dot" style="background:var(--cat-topic)"></span>topic of interest</button>
-          <button class="chip c-none" data-cat="none" data-on="1"><span class="dot" style="background:var(--cat-none)"></span>unsorted</button>
+          <button class="chip c-none" data-cat="none" data-on="1"><span class="dot" style="background:var(--cat-none)"></span>untagged</button>
         </div>
         <div class="toolbar-actions">
           <select class="filter" id="sortSel">
@@ -849,6 +896,7 @@
         <span><i style="background:var(--cat-vocab)"></i>vocabulary</span>
         <span><i style="background:var(--cat-quotes)"></i>quotes</span>
         <span><i style="background:var(--cat-topic)"></i>topic of interest</span>
+        <span><i style="background:var(--cat-none)"></i>untagged</span>
       </div>
       <div class="tl-brushbar" id="tlBrushBar"></div>
       <div class="tl-stats" id="tlStats"></div>
@@ -895,16 +943,16 @@
     <div id="rvFlash">
     <div id="reviewSetup">
       <div id="reviewResume" class="rv-resume" style="display:none"></div>
-      <p class="anki-intro">Flip through your highlights like flashcards. Vocabulary cards show the word; flip to reveal its definition. Quotes and topics flip to their source context.</p>
+      <p class="anki-intro">Flip through your highlights like flashcards. Vocabulary cards show the word; flip to reveal its definition. Topic cards flip to their source context.</p>
       <div class="rv-setup-row">
         <div class="cats" id="reviewCats">
           <button class="chip c-vocab" data-cat="vocab" data-on="1"><span class="dot" style="background:var(--cat-vocab)"></span>vocabulary</button>
-          <button class="chip c-quotes" data-cat="quotes" data-on="1"><span class="dot" style="background:var(--cat-quotes)"></span>quotes</button>
           <button class="chip c-topic" data-cat="topic" data-on="1"><span class="dot" style="background:var(--cat-topic)"></span>topic of interest</button>
         </div>
         <button class="btn" id="reviewStartBtn">Start review</button>
       </div>
       <p class="rv-hint">Shortcuts: <b>Space</b> flip (then defaults to Good) · <b>1</b> again · <b>2</b> hard · <b>3</b> good · <b>4</b> easy · <b>Esc</b> end</p>
+      <div id="reviewStats"></div>
       <div id="deckContents"></div>
     </div>
     <div id="reviewStage" class="hidden"></div>
@@ -1058,7 +1106,10 @@ function autoCategorize(c){
   const capCount = words.filter(w=>/^[A-Z]/.test(strip(w))).length;
   const isProperish = (sWords.length===1 && /^[A-Z]/.test(s))
                    || (words.length<=8 && capCount/words.length>=0.5);
-  if(isProperish && words.length<=8) return "topic";
+  // a short phrase carrying proper nouns (a list/group of names) is a topic of interest, not a quote
+  const nonFirstCap = words.slice(1).some(w=>/^[A-Z]/.test(strip(w)));
+  const namey = words.length<=6 && !/[.!?]$/.test(t) && (capCount>=2 || nonFirstCap);
+  if((isProperish||namey) && words.length<=8) return "topic";
   if(/[;:—]|\blike a\b|as if|as though/i.test(t) && words.length<=45) return "quotes";
   if(words.length>=10) return "quotes";
   // short leftover lowercase-ish phrase: treat as vocab only if 1 word, else none
@@ -1097,6 +1148,9 @@ function annotateTerms(text){
       connector:CONNECTORS.test(core),common:COMMON_CAP.test(core.replace(/\./,"")),attachNoun:ATTACH_NOUN.test(core),
       breaksAfter:/[,;:)]/.test(trail)||/[—–]$/.test(trail)||internalDash,breaksBefore:/[(]/.test(lead),endsSentence:/[.!?]$/.test(trail)});}
   let prevEnded=true;for(const w of words){w.sentStart=prevEnded;prevEnded=w.endsSentence&&!w.init;}
+  // a capitalized word appearing mid-sentence is a strong proper-noun signal; track it
+  const midCapCount={};for(const w of words){if(w.cap&&!w.sentStart&&!w.common&&!w.connector){const k=w.core.toLowerCase();midCapCount[k]=(midCapCount[k]||0)+1;}}
+  const isPlainCap=w=>/^[A-ZÀ-Þ][a-zà-ÿ'’\-]+$/.test(w.core)&&!w.allcaps&&!/[A-Z].*[A-Z]/.test(w.core)&&!/['’][A-Z]/.test(w.core);
   const shortClip=words.length<=3;
   let out="",i=0;
   while(i<words.length){const w=words[i];const eligible=(w.cap||w.init)&&!w.common;
@@ -1111,7 +1165,8 @@ function annotateTerms(text){
     while(run.length&&run[run.length-1].connector){run.pop();}
     if(!run.length){out+=w.raw+w.space;i++;continue;}
     const realJ=i+run.length;const hasRealName=run.some(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init);
-    const single=run.length===1;const ambiguous=single&&run[0].sentStart&&(SENTENCE_LEAD_STOP.test(run[0].core)||run[0].connector)&&!run[0].allcaps;
+    const single=run.length===1;let ambiguous=single&&run[0].sentStart&&(SENTENCE_LEAD_STOP.test(run[0].core)||run[0].connector)&&!run[0].allcaps;
+    if(single&&run[0].sentStart&&isPlainCap(run[0])&&!(midCapCount[run[0].core.toLowerCase()]>0))ambiguous=true;
     if(hasRealName&&!ambiguous){const lead=run[0].lead,trail=run[run.length-1].trail;
       let display=run.map((r,k)=>{let s=r.raw;if(k===0)s=s.slice(lead.length);if(k===run.length-1)s=s.slice(0,s.length-trail.length);return s;}).join(" ");
       const term=lookupForm(display);const spaceAfter=run[run.length-1].space;
@@ -1123,11 +1178,17 @@ function annotateTerms(text){
 
 /* ---------- Wikipedia + Wiktionary ---------- */
 const wikiCache={};
+async function fetchWikiOne(title){
+  try{const url="https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(title);
+    const r=await fetch(url);if(!r.ok)return null;const j=await r.json();
+    return (j.type==="disambiguation"||!j.extract)?null:{title:j.title,extract:j.extract,link:j.content_urls?.desktop?.page,thumb:j.thumbnail?.source};}catch(e){return null;}}
 async function fetchWiki(term){if(term in wikiCache)return wikiCache[term];
-  try{const url="https://en.wikipedia.org/api/rest_v1/page/summary/"+encodeURIComponent(term);
-    const r=await fetch(url);if(!r.ok)throw 0;const j=await r.json();
-    const res=(j.type==="disambiguation"||!j.extract)?null:{title:j.title,extract:j.extract,link:j.content_urls?.desktop?.page,thumb:j.thumbnail?.source};
-    wikiCache[term]=res;return res;}catch(e){wikiCache[term]=null;return null;}}
+  const cands=[term];
+  // "Rimbaud's Voyelles" / "Dürer's Melancholia" — try the full phrase first, then the work itself
+  const pm=(term||"").match(/^(.+?)['’]s\s+(.+)$/);
+  if(pm&&pm[2]&&pm[2].trim().length>=3)cands.push(pm[2].trim());
+  let res=null;for(const t of cands){res=await fetchWikiOne(t);if(res)break;}
+  wikiCache[term]=res;return res;}
 const wiktCache={};
 function stripTags(html){const d=document.createElement("div");d.innerHTML=html||"";return (d.textContent||"").trim();}
 function compactText(s){return (s||"").replace(/\s+/g," ").replace(/\s+([,.;:!?])/g,"$1").trim();}
@@ -1269,7 +1330,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     else if(SORT==="tag")clips.sort((a,b)=>(CAT_ORDER[a.cat]-CAT_ORDER[b.cat])||(pageNum(a)-pageNum(b)));
     if(!clips.length)return;shown+=clips.length;
     const sec=document.createElement("section");sec.className="book";sec.id="book-"+book.key;
-    sec.innerHTML=`<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="idx">${String(bi+1).padStart(2,"0")}</span><span class="title">${escHtml(book.title)}</span>${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}<span class="tally">${clips.length} ✦</span><span class="caret">▾</span></div><div class="clips"></div>`;
+    sec.innerHTML=`<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="title">${escHtml(book.title)}</span>${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}<span class="tally">${clips.length} ✦</span><span class="caret">▾</span></div><div class="clips"></div>`;
     const wrap=sec.querySelector(".clips");sec.querySelector(".book-head").onclick=()=>sec.classList.toggle("collapsed");
     clips.forEach(c=>{const div=document.createElement("div");div.className="clip"+(c.type==="note"?" is-note":"");div.dataset.fp=c.fp||clipFp(c);
       const locTxt=c.page?`<span class="pg">${escHtml(c.page)}</span>`:c.loc?`<span class="pg">${escHtml(c.loc)}</span>`:"—";
@@ -1281,7 +1342,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
       const updateTag=c.incoming?`<button class="upd-pill" title="A re-import has different text — click to review">update available</button>`:"";
       div.dataset.cat=c.cat||"none";
       div.innerHTML=`<div class="loc">${locTxt}${c.type==="note"?'<br><span class="pill">note</span>':""}<button class="edit-btn" title="Edit this highlight" aria-label="Edit">✎</button></div>
-        <div class="body"><span class="cat-line" title="${CAT_LABELS[c.cat]||"unsorted"}"></span><p class="text">${bodyHtml}</p>
+        <div class="body"><span class="cat-line" title="${CAT_LABELS[c.cat]||"untagged"}"></span><p class="text">${bodyHtml}</p>
           <div class="meta"><div class="catpick" role="group" aria-label="Set tag">
             ${["vocab","quotes","topic"].map(k=>`<button data-k="${k}" data-sel="${c.cat===k?1:0}" title="${CAT_LABELS[k]}"><span class="swdot"></span>${CAT_LABELS[k]}</button>`).join("")}
           </div>${editedTag}${updateTag}</div></div>`;
@@ -1411,7 +1472,23 @@ function showSurprise(){const hl=STATE.clips.filter(c=>c.type!=="note");if(!hl.l
 function uid(){return "d"+Math.random().toString(36).slice(2,8);}
 function clipKeyTerm(c){const html=annotateTerms(c.text);const m=html.match(/data-term="([^"]*)"/);
   if(m)return m[1].replace(/&quot;/g,'"').replace(/&amp;/g,"&");return lookupForm(c.text);}
-function clipsForDeck(deck){return STATE.clips.filter(c=>c.type!=="note"&&c.cat!=="quotes"&&deck.tags[c.cat]);}
+function clipsForDeck(deck){const inc=new Set(deck.include||[]);
+  return STATE.clips.filter(c=>c.type!=="note"&&c.cat!=="quotes"&&(deck.tags[c.cat]||inc.has(cardId(c))));}
+function addClipToDeck(c,deckId){const d=STATE.decks.find(x=>x.id===deckId);if(!d)return false;
+  d.include=d.include||[];const id=cardId(c);if(!d.include.includes(id))d.include.push(id);saveState();return true;}
+function chooseDeckFor(c){
+  if(!c){return;}
+  const mk=()=>{const nm=prompt("New deck name:","Review picks");if(!nm)return;const d={id:uid(),name:nm.trim()||"Review picks",tags:{vocab:false,topic:false},include:[]};STATE.decks.push(d);ACTIVE_DECK=d.id;addClipToDeck(c,d.id);toast("Added to “"+d.name+"”.");};
+  if(!STATE.decks.length){mk();return;}
+  const ov=document.createElement("div");ov.className="deck-choose-ov";
+  ov.innerHTML=`<div class="deck-choose"><div class="dc-h">Add to deck</div>${STATE.decks.map(d=>`<button class="dc-opt" data-id="${d.id}">${escHtml(d.name)}</button>`).join("")}<button class="dc-opt dc-new">＋ New deck…</button><button class="dc-cancel">Cancel</button></div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.addEventListener("click",e=>{if(e.target===ov)close();});
+  ov.querySelector(".dc-cancel").onclick=close;
+  ov.querySelector(".dc-new").onclick=()=>{close();mk();};
+  ov.querySelectorAll(".dc-opt:not(.dc-new)").forEach(b=>b.onclick=()=>{addClipToDeck(c,b.dataset.id);const d=STATE.decks.find(x=>x.id===b.dataset.id);toast("Added to “"+(d?d.name:"deck")+"”.");close();});
+}
 function renderAnki(){const dl=document.getElementById("deckList");dl.innerHTML="";
   if(!STATE.clips.length){document.getElementById("deckDetail").innerHTML='<div class="empty">Import highlights first, on the Library tab.</div>';return;}
   STATE.decks.forEach(deck=>{const n=clipsForDeck(deck).length;
@@ -1470,6 +1547,7 @@ async function exportAllDecks(){const wc=STATE.decks.filter(d=>clipsForDeck(d).l
 function exportJson(){exportLibraryJson();}
 const PUB_KEYWORDS=/(edition|classics?|contemporaries|international|library|series|annotated|illustrated|unabridged|abridged|reprint|paperb(ack|ook)|hardcover|vol\.?\s*\w+|book\s*\d+|new directions|penguin|vintage|modern library|everyman|norton|oxford|bantam|anchor|knopf|picador|faber|harper|press|deluxe|centennial|anniversary|kindle|publishing|publisher|corporation|company|inc\b|ltd\b|llc\b)/i;
 function cleanTitle(raw){let t=(raw||"").trim();
+  t=t.replace(/[\(\[\{]?\s*ocean\s*of\s*pdf(\s*\.\s*com)?\s*[\)\]\}]?/ig,"").trim();
   if(/\s--\s/.test(t))t=t.split(/\s--\s/)[0].trim();
   t=t.replace(/\s*\d{9,13}[\dxX]?\s*$/,"").trim();
   t=t.replace(/\s*[\(\[]?(19|20)\d{2}[\)\]]?\s*$/,"").trim();
@@ -1520,23 +1598,39 @@ function renderTimeline(){
   stats.innerHTML=[["Highlights",dated.length],["Books",books],["Vocabulary",byCat("vocab")],["Quotes",byCat("quotes")],["Topics",byCat("topic")],["Longest streak",streak+(streak===1?" wk":" wks")]]
     .map(([l,v])=>`<div class="tl-stat"><b>${v}</b><span>${l}</span></div>`).join("");
 
-  // ---- Tableau-style dual-handle date range slider ----
-  const span2=(+max- +min)||1;
+  // ---- dual-handle date range slider (month ticks, ≥ 1-year span) ----
+  const monthStart=d=>new Date(d.getFullYear(),d.getMonth(),1);
+  const addMonths=(d,n)=>new Date(d.getFullYear(),d.getMonth()+n,1);
+  const domMin=monthStart(min);
+  let domMax=addMonths(monthStart(max),1);                 // first of the month after the last highlight
+  if((+domMax- +domMin)<366*86400000)domMax=addMonths(domMin,12); // always show at least a full year
+  const span2=(+domMax- +domMin)||1;
   // initialize fractions from existing brush, else full range
-  let f0=TL_BRUSH?Math.max(0,Math.min(1,(+TL_BRUSH.start- +min)/span2)):0;
-  let f1=TL_BRUSH?Math.max(0,Math.min(1,(+TL_BRUSH.end- +min)/span2)):1;
+  let f0=TL_BRUSH?Math.max(0,Math.min(1,(+TL_BRUSH.start- +domMin)/span2)):0;
+  let f1=TL_BRUSH?Math.max(0,Math.min(1,(+TL_BRUSH.end- +domMin)/span2)):1;
   const slider=document.getElementById("tlSlider"),range=document.getElementById("tlRange"),
         h0=document.getElementById("tlH0"),h1=document.getElementById("tlH1"),
         labL=document.getElementById("tlLabL"),labR=document.getElementById("tlLabR"),
         stateLab=document.getElementById("tlSliderState");
-  labL.textContent=fmtD(min);labR.textContent=fmtD(max);
-  const dateAt=f=>new Date(+min+span2*f);
+  labL.textContent=fmtD(domMin);labR.textContent=fmtD(new Date(+domMax-86400000));
+  const dateAt=f=>new Date(+domMin+span2*f);
+  (function monthTicks(){
+    let layer=slider.querySelector(".tl-ticks");
+    if(!layer){layer=document.createElement("div");layer.className="tl-ticks";slider.appendChild(layer);}
+    let html="";
+    for(let d=new Date(domMin);d<domMax;d=addMonths(d,1)){
+      const f=(+d- +domMin)/span2,mo=d.getMonth(),isQ=mo%3===0,isYear=mo===0;
+      html+=`<div class="tk${isQ?" q":""}" style="left:${(f*100).toFixed(2)}%"></div>`;
+      if(isQ)html+=`<div class="tkl" style="left:${(f*100).toFixed(2)}%">${isYear?d.getFullYear():d.toLocaleDateString(undefined,{month:"short"})}</div>`;
+    }
+    layer.innerHTML=html;
+  })();
   function paint(){
     const lo=Math.min(f0,f1),hi=Math.max(f0,f1);
     h0.style.left=(f0*100)+"%";h1.style.left=(f1*100)+"%";
     range.style.left=(lo*100)+"%";range.style.width=((hi-lo)*100)+"%";
     const full=lo<=0.0001&&hi>=0.9999;
-    stateLab.textContent=full?"Showing all dates — drag a handle to filter the library":`Filtering library: ${fmtD(dateAt(lo))} – ${fmtD(dateAt(hi))}`;
+    stateLab.textContent=full?"Drag a handle to filter the library":`Filtering library: ${fmtD(dateAt(lo))} – ${fmtD(dateAt(hi))}`;
     readout.style.display="none";
     const s=dateAt(lo),e=new Date(+dateAt(hi)+1);
     const inRange=dated.filter(c=>{const d=parseDate(c);return d&&d>=s&&d<e;});
@@ -1599,8 +1693,8 @@ const THEME_DEMOTE=new Set((
 ).split(/\s+/).filter(Boolean));
 function isThemeWord(w){const lw=(w||"").toLowerCase();return lw.length>=4&&!CONN_STOP.has(lw)&&!THEME_DEMOTE.has(lw)&&!(typeof THEME_BAD_WORDS!=="undefined"&&THEME_BAD_WORDS.has(lw));}
 function keywordsForClip(c){
-  const out=new Map(); // stem -> {disp, weight}
-  const add=(s,disp,w)=>{if(!s)return;const ex=out.get(s);if(!ex)out.set(s,{disp,weight:w});else{ex.weight=Math.max(ex.weight,w);if(disp.length>ex.disp.length||(/[A-Z]/.test(disp)&&!/[A-Z]/.test(ex.disp)))ex.disp=disp;}};
+  const out=new Map(); // stem -> {disp, weight, entity}
+  const add=(s,disp,w,ent)=>{if(!s)return;const ex=out.get(s);if(!ex)out.set(s,{disp,weight:w,entity:!!ent});else{ex.weight=Math.max(ex.weight,w);ex.entity=ex.entity||!!ent;if(disp.length>ex.disp.length||(/[A-Z]/.test(disp)&&!/[A-Z]/.test(ex.disp)))ex.disp=disp;}};
   // detected proper-noun / multiword entities — strongest signal
   const html=annotateTerms(c.text||"");const re=/data-term="([^"]*)"/g;let m;
   while((m=re.exec(html))){const t=m[1].replace(/&quot;/g,'"').replace(/&amp;/g,"&").trim();
@@ -1610,7 +1704,7 @@ function keywordsForClip(c){
     // multi-word entities are keyed by their whole phrase stem, so "Marco Pierre White"
     // stays distinct from the common word "white" and won't inflate its count
     const key=cleanWords.length>1?cleanWords.map(stem).join(" "):stem(anchor);
-    if(anchor.length>=3&&!CONN_STOP.has(anchor.toLowerCase()))add(key,t,cleanWords.length>1?3:2.2);}
+    if(anchor.length>=3&&!CONN_STOP.has(anchor.toLowerCase()))add(key,t,cleanWords.length>1?3:2.2,true);}
   // vocab word
   if(c.cat==="vocab"&&isVocabWord(c)){const v=vocabTermOf(c);if(v)add(stem(v),v,2);}
   // multi-word conceptual phrases (adjacent capitalized or content-word bigrams)
@@ -1667,9 +1761,15 @@ function topThemesFromClips(clips,limit=5){const freq=new Map();clips.forEach(c=
     const boost=1+(c.cat==="topic"?0.6:0)+(c.edited?0.4:0)+(c.cat==="quotes"?0.15:0);
     keywordsForClip(c).forEach((v,s)=>{const disp=v.disp;const clean=disp.toLowerCase().replace(/[^a-z]/g,"");
       if(clean.length<4||THEME_BAD_WORDS.has(clean)||THEME_DEMOTE.has(clean)||THEME_BAD_WORDS.has((s||"").toLowerCase()))return;
-      if(!freq.has(s))freq.set(s,{term:disp,count:0,score:0,books:new Set()});
-      const e=freq.get(s);e.count++;e.score+=v.weight*boost;e.books.add(cleanTitle(c.title));if(disp.length>e.term.length)e.term=disp;});});
-  return [...freq.values()].map(x=>{if(/\s/.test(x.term))x.score*=1.15;return x;}).filter(x=>x.count>=1).sort((a,b)=>b.score-a.score||b.count-a.count||b.books.size-a.books.size).slice(0,limit);}
+      if(!freq.has(s))freq.set(s,{term:disp,count:0,score:0,books:new Set(),entity:false});
+      const e=freq.get(s);e.count++;e.score+=v.weight*boost;e.books.add(cleanTitle(c.title));e.entity=e.entity||v.entity;if(disp.length>e.term.length)e.term=disp;});});
+  return [...freq.values()].map(x=>{
+      if(/\s/.test(x.term))x.score*=1.15;
+      // case shouldn't matter: general (non-entity) single-word themes display lowercase so "World"/"world" merge cleanly
+      if(!x.entity&&!/\s/.test(x.term))x.term=x.term.toLowerCase();
+      return x;})
+    .filter(x=>{ if(x.entity&&x.count<2)return false; /* one-off proper noun: needs 2+ highlights to count as a theme */ return x.count>=1;})
+    .sort((a,b)=>b.score-a.score||b.count-a.count||b.books.size-a.books.size).slice(0,limit);}
 function buildThemeGraph(){const groups=buildConnections(true).slice(0,18);
   const nodes=groups.map((g,i)=>({id:"t"+i,term:g.term,count:g.clips.length,books:g.books.size,clips:g.clips}));
   const byClip=new Map();nodes.forEach(n=>n.clips.forEach(c=>{const k=c.fp||clipFp(c);if(!byClip.has(k))byClip.set(k,[]);byClip.get(k).push(n.id);}));
@@ -1745,12 +1845,18 @@ function memoryScore(c,terms){const hay=[c.text,cleanTitle(c.title),c.author,c.c
   if(c.cat==="quotes")score+=0.3;if(c.cat==="topic")score+=0.2;return score;}
 function renderMemoryResults(){const input=document.getElementById("q"),box=document.getElementById("memoryResults");if(!input||!box||PAGE!=="library")return;
   const q=input.value.trim();if(q.length<2||!STATE.clips.length){box.classList.remove("show");box.innerHTML="";return;}
-  const terms=tokenizeQuery(q);const hits=STATE.clips.filter(c=>c.type!=="note").map(c=>({c,score:memoryScore(c,terms)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,6);
+  const terms=tokenizeQuery(q);const hits=STATE.clips.filter(c=>c.type!=="note").map(c=>({c,score:memoryScore(c,terms)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
   if(!hits.length){box.classList.remove("show");box.innerHTML="";return;}
   box.innerHTML=`<div class="memory-lead">Closest matches</div>`+hits.map(({c,score})=>`<button class="memory-hit" data-fp="${escAttr(c.fp)}" type="button"><b>${escHtml(c.text.length>150?c.text.slice(0,147)+"…":c.text)}</b><div class="src">${escHtml(cleanTitle(c.title))}${c.author?" · "+escHtml(c.author):""}${c.page?" · p. "+escHtml(c.page):""}</div><span class="score">${Math.round(score)}</span></button>`).join("");
   box.classList.add("show");box.querySelectorAll(".memory-hit[data-fp]").forEach(btn=>btn.onclick=()=>jumpToMemoryHit(btn.dataset.fp));}
 function jumpToMemoryHit(fp){const c=STATE.clips.find(x=>x.fp===fp);if(!c)return;
-  const target=document.querySelector(`.clip[data-fp="${CSS.escape(fp)}"]`);
+  // the live text filter may be hiding this clip — clear it so the highlight actually renders
+  if(!document.querySelector(`.clip[data-fp="${CSS.escape(fp)}"]`)){
+    QUERY="";const qel=document.getElementById("q");if(qel)qel.value="";
+    const cb=document.getElementById("clearSearch");if(cb)cb.style.display="none";
+    render();
+  }
+  const box=document.getElementById("memoryResults");if(box){box.classList.remove("show");box.innerHTML="";}
   const sec=document.getElementById("book-"+slug(cleanTitle(c.title)));if(sec)sec.classList.remove("collapsed");
   setTimeout(()=>{const t=document.querySelector(`.clip[data-fp="${CSS.escape(fp)}"]`);if(t){t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.add("pulse");setTimeout(()=>t.classList.remove("pulse"),1800);}},40);}
 /* ---------- Timeline insights (recap + theme evolution) ---------- */
@@ -1794,7 +1900,8 @@ function renderBookStats(){const box=document.getElementById("bookStats");if(!bo
     b.clips.forEach(c=>by[c.cat]=(by[c.cat]||0)+1);
     const dates=b.clips.map(parseDate).filter(Boolean).sort((a,b)=>a-b);
     const total=b.clips.length;const maxBar=total||1;
-    const seg=(k,col)=>by[k]?`<span style="background:${col};width:${by[k]/maxBar*100}%"></span>`:"";
+    const segLab={vocab:"vocabulary",quotes:"quotes",topic:"topic of interest",none:"untagged"};
+    const seg=(k,col)=>by[k]?`<span title="${by[k]} ${segLab[k]} · ${Math.round(by[k]/maxBar*100)}%" style="background:${col};width:${by[k]/maxBar*100}%"></span>`:"";
     // per-book vocab ranked by rarity/difficulty
     const vocab=[...new Set(b.clips.filter(c=>c.cat==="vocab"&&isVocabWord(c)).map(c=>vocabTermOf(c)).filter(Boolean))]
       .sort((x,y)=>vocabRarity(y)-vocabRarity(x)).slice(0,8);
@@ -1802,12 +1909,11 @@ function renderBookStats(){const box=document.getElementById("bookStats");if(!bo
       bar:`<div class="bs-bar">${seg("vocab","var(--cat-vocab)")}${seg("quotes","var(--cat-quotes)")}${seg("topic","var(--cat-topic)")}${seg("none","var(--cat-none)")}</div>`};
   }).sort((a,b)=>b.total-a.total);
   box.innerHTML=rows.map(r=>{
-    const range=r.last?fmt(r.last):"—";
+    const rangeTxt=r.first?(r.last&&+r.last!==+r.first?fmt(r.first)+" – "+fmt(r.last):fmt(r.first)):"—";
     return `<div class="bs-row">
-      <div class="bs-head"><span class="bs-title">${escHtml(r.b.title)}</span><span class="bs-author">${escHtml(r.b.author||"")}</span><span class="bs-count">${r.total}</span></div>
+      <div class="bs-head"><span class="bs-title">${escHtml(r.b.title)}</span><span class="bs-author">${escHtml(r.b.author||"")}</span><span class="bs-range">${rangeTxt}</span><span class="bs-headspacer"></span><span class="bs-count">${r.total}</span></div>
       ${r.bar}
-      <div class="bs-meta"><span style="color:var(--cat-vocab)">${r.by.vocab} vocab</span> · <span style="color:var(--cat-quotes)">${r.by.quotes} quotes</span> · <span style="color:var(--cat-topic)">${r.by.topic} topics</span> · <span class="bs-range">read ${range}</span></div>
-      ${r.vocab.length?`<div class="bs-vocab"><span class="bs-vocab-lab">notable vocabulary</span>${r.vocab.map(w=>`<button class="bs-vocab-word" data-q="${escAttr(w)}">${escHtml(w)}</button>`).join("")}</div>`:""}
+      ${r.vocab.length?`<div class="bs-vocab">${r.vocab.map(w=>`<button class="bs-vocab-word" data-q="${escAttr(w)}">${escHtml(w)}</button>`).join("")}</div>`:""}
     </div>`;}).join("");
   box.querySelectorAll(".bs-vocab-word").forEach(w=>w.onclick=()=>{QUERY=w.dataset.q;const qel=document.getElementById("q");if(qel)qel.value=QUERY;document.querySelector('.tab[data-page="library"]').click();render();document.getElementById("list").scrollIntoView({behavior:"smooth"});});
 }
@@ -1859,13 +1965,13 @@ function renderConnections(){const box=document.getElementById("connList");if(!b
   if(!STATE.clips.length){box.innerHTML='<div class="empty">Import highlights first, on the Library tab.</div>';return;}
   const includeSingle=document.getElementById("connAll").checked;
   let groups=buildConnections(includeSingle);
-  if(CONNECTION_FOCUS){const key=normThemeTerm(CONNECTION_FOCUS);groups=groups.slice().sort((a,b)=>{const am=normThemeTerm(a.term)===key||normThemeTerm(a.term).includes(key)||key.includes(normThemeTerm(a.term));const bm=normThemeTerm(b.term)===key||normThemeTerm(b.term).includes(key)||key.includes(normThemeTerm(b.term));return (bm?1:0)-(am?1:0)||b.books.size-a.books.size||b.clips.length-a.clips.length;});}
+  // when opened from a theme, keep the natural ranked order and just reveal/scroll to the theme in its place
   if(!groups.length){box.innerHTML=`<div class="empty">No recurring terms found${includeSingle?"":" across multiple books — try the toggle above"}.</div>`;return;}
   box.innerHTML=groups.map((g,i)=>{
     const focused=CONNECTION_FOCUS&&(normThemeTerm(g.term)===normThemeTerm(CONNECTION_FOCUS)||normThemeTerm(g.term).includes(normThemeTerm(CONNECTION_FOCUS))||normThemeTerm(CONNECTION_FOCUS).includes(normThemeTerm(g.term)));
     const chips=[...g.books].map(b=>`<span class="conn-book">${escHtml(b)}</span>`).join("");
     const items=g.clips.map(c=>`<div class="conn-clip"><span class="conn-src"><b>${escHtml(cleanTitle(c.title))}</b>${c.author?` · ${escHtml(c.author)}`:""}${c.page?" · p."+escHtml(c.page):""}</span>${escHtml(c.text)}</div>`).join("");
-    return `<div class="conn-group${focused?" focus":""}${(!focused&&CONNECTION_FOCUS)?" collapsed":""}"><div class="conn-head" data-i="${i}">
+    return `<div class="conn-group${focused?" focus":""}"><div class="conn-head" data-i="${i}">
         <span class="conn-term">${escHtml(g.term)}</span>
         <span class="conn-meta">${g.books.size} books · ${g.clips.length} highlights</span>
         <span class="caret">▾</span></div>
@@ -1896,44 +2002,71 @@ function resetReviewSetup(){
   showReviewSub(REVIEW_SUB);
 }
 let DECK_GROUP="tag"; // tag | book
+let DECK_SORT="rare"; // rare | reviewed | hard
+function stripTrailingPunct(s){return (s||"").replace(/[\s.,;:!?]+$/,"").trim();}
+function reviewOf(c){const r=c&&c.review;return {count:r?r.count:0,grades:r?(r.grades||[]):[]};}
+function avgGrade(g){return g.length?g.reduce((a,b)=>a+b,0)/g.length:null;}
 function renderDeckContents(){const box=document.getElementById("deckContents");if(!box)return;
-  const vocabClips=STATE.clips.filter(c=>c.cat==="vocab"&&isVocabWord(c));
-  const vocab=[...new Set(vocabClips.map(c=>vocabTermOf(c)).filter(Boolean))].sort((a,b)=>vocabRarity(b)-vocabRarity(a));
-  const topics=STATE.clips.filter(c=>c.cat==="topic");
-  const quotes=STATE.clips.filter(c=>c.cat==="quotes");
   const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);const flagged=(lib&&lib.flagged)||[];
-  if(!vocab.length&&!topics.length&&!quotes.length){box.innerHTML="";return;}
-  const wordBtn=(q,disp,cls,title)=>`<button class="deck-word${cls?" "+cls:""}" data-q="${escAttr(q)}"${title?` title="${escAttr(title)}"`:""}>${escHtml(disp)}</button>`;
-  const clipBtn=c=>{
-    if(c.cat==="vocab"&&isVocabWord(c))return wordBtn(vocabTermOf(c),vocabTermOf(c),"");
-    const t=c.text.length>54?c.text.slice(0,52)+"…":c.text;
-    return wordBtn(c.text.slice(0,40),t,c.cat==="topic"?"topicw":"quotew",cleanTitle(c.title));
-  };
+  const flaggedSet=new Set(flagged);
+  const byId=new Map(STATE.clips.filter(c=>c.type!=="note").map(c=>[cardId(c),c]));
+  const isFlagged=c=>flaggedSet.has(cardId(c));
+  // vocab terms (deduped), flagged cards excluded from the main lists
+  const vocabClips=STATE.clips.filter(c=>c.cat==="vocab"&&isVocabWord(c)&&!isFlagged(c));
+  const vocabMap=new Map();
+  vocabClips.forEach(c=>{const t=vocabTermOf(c);if(!t)return;if(!vocabMap.has(t))vocabMap.set(t,{term:t,clip:c,count:0,grades:[]});const e=vocabMap.get(t);const r=reviewOf(c);e.count+=r.count;e.grades=e.grades.concat(r.grades);});
+  let vocab=[...vocabMap.values()];
+  const topics=STATE.clips.filter(c=>c.cat==="topic"&&!isFlagged(c));
+  if(!vocab.length&&!topics.length&&!flagged.length){box.innerHTML="";return;}
+  const sortVocab=arr=>{
+    if(DECK_SORT==="reviewed")return arr.sort((a,b)=>b.count-a.count||vocabRarity(b.term)-vocabRarity(a.term));
+    if(DECK_SORT==="hard")return arr.sort((a,b)=>{const ga=avgGrade(a.grades),gb=avgGrade(b.grades);return (ga==null?99:ga)-(gb==null?99:gb)||b.count-a.count;});
+    return arr.sort((a,b)=>vocabRarity(b.term)-vocabRarity(a.term));};
+  const sortTopics=arr=>{
+    if(DECK_SORT==="reviewed")return arr.sort((a,b)=>reviewOf(b).count-reviewOf(a).count);
+    if(DECK_SORT==="hard")return arr.sort((a,b)=>{const ga=avgGrade(reviewOf(a).grades),gb=avgGrade(reviewOf(b).grades);return (ga==null?99:ga)-(gb==null?99:gb);});
+    return arr;};
+  const rvn=n=>n?`<span class="rvn" title="${n} review${n===1?"":"s"}">×${n}</span>`:"";
+  const vBtn=o=>`<button class="deck-word" data-q="${escAttr(o.term)}" data-cid="${escAttr(cardId(o.clip))}">${escHtml(o.term)}${rvn(o.count)}<span class="add-deck" data-add="${escAttr(cardId(o.clip))}" title="Add to a deck">＋</span></button>`;
+  const tBtn=c=>{const full=stripTrailingPunct(c.text);const t=full.length>54?full.slice(0,52)+"…":full;
+    return `<button class="deck-word topicw" data-q="${escAttr(c.text.slice(0,40))}" data-cid="${escAttr(cardId(c))}" title="${escAttr(cleanTitle(c.title))}">${escHtml(t)}${rvn(reviewOf(c).count)}<span class="add-deck" data-add="${escAttr(cardId(c))}" title="Add to a deck">＋</span></button>`;};
   const section=(head,sub,inner)=>`<div class="deck-section"><div class="deck-col-head">${escHtml(head)}${sub?`<span class="deck-sub">${escHtml(sub)}</span>`:""}</div><div class="deck-words">${inner||'<span class="deck-empty">none</span>'}</div></div>`;
   let sections="";
   if(DECK_GROUP==="book"){
     groupByBook().forEach(b=>{
-      const cards=b.clips.filter(c=>c.type!=="note"&&(c.cat==="vocab"||c.cat==="quotes"||c.cat==="topic"));
-      if(!cards.length)return;
-      // vocab in this book first, ranked by rarity, then quotes/topics
-      cards.sort((x,y)=>{const ax=x.cat==="vocab"?0:1,ay=y.cat==="vocab"?0:1;if(ax!==ay)return ax-ay;
-        if(ax===0)return vocabRarity(vocabTermOf(y))-vocabRarity(vocabTermOf(x));return 0;});
-      sections+=section(b.title,b.author||"",cards.map(clipBtn).join(""));
+      const vs=b.clips.filter(c=>c.cat==="vocab"&&isVocabWord(c)&&!isFlagged(c)).map(c=>{const r=reviewOf(c);return {term:vocabTermOf(c),clip:c,count:r.count,grades:r.grades};});
+      const ts=b.clips.filter(c=>c.cat==="topic"&&!isFlagged(c));
+      if(!vs.length&&!ts.length)return;
+      sections+=section(b.title,b.author||"",sortVocab(vs).map(vBtn).join("")+sortTopics(ts).map(tBtn).join(""));
     });
   }else{
-    sections+=section("vocabulary","rare → common",vocab.length?vocab.map(w=>wordBtn(w,w,"")).join(""):"");
-    sections+=section("quotes","",quotes.length?quotes.map(clipBtn).join(""):"");
-    sections+=section("topic of interest","",topics.length?topics.map(clipBtn).join(""):"");
+    const subLab=DECK_SORT==="reviewed"?"most reviewed":DECK_SORT==="hard"?"hardest first":"rare → common";
+    sections+=section("vocabulary",subLab,vocab.length?sortVocab(vocab).map(vBtn).join(""):"");
+    sections+=section("topic of interest",DECK_SORT==="rare"?"":subLab,topics.length?sortTopics(topics).map(tBtn).join(""):"");
   }
-  box.innerHTML=`<details class="deck-browse"><summary>Deck contents — ${vocab.length} vocab · ${quotes.length} quotes · ${topics.length} topics${flagged.length?` · ${flagged.length} flagged`:""}</summary>
-    <div class="deck-groupby"><button data-grp="tag" data-on="${DECK_GROUP==="tag"?1:0}">by tag</button><button data-grp="book" data-on="${DECK_GROUP==="book"?1:0}">by book</button></div>
+  const flaggedCards=flagged.map(id=>byId.get(id)).filter(Boolean);
+  box.innerHTML=`
+    <div class="deck-toolbar">
+      <span class="deck-head-lab">Deck contents</span>
+      <span class="deck-sub">${vocab.length} vocab · ${topics.length} topics</span>
+      <span class="deck-sort">
+        <button data-grp="tag" data-on="${DECK_GROUP==="tag"?1:0}">by tag</button>
+        <button data-grp="book" data-on="${DECK_GROUP==="book"?1:0}">by book</button>
+        <button data-sort="rare" data-on="${DECK_SORT==="rare"?1:0}">rare</button>
+        <button data-sort="reviewed" data-on="${DECK_SORT==="reviewed"?1:0}">reviewed</button>
+        <button data-sort="hard" data-on="${DECK_SORT==="hard"?1:0}">hardest</button>
+      </span>
+    </div>
     <div class="deck-sections">${sections}</div>
-    ${flagged.length?`<div class="deck-flagged"><button class="btn ghost sm" id="reviewFlagged">Review ${flagged.length} flagged card${flagged.length===1?"":"s"}</button> <button class="btn ghost sm" id="clearFlagged">Clear flags</button></div>`:""}
-  </details>`;
-  box.querySelectorAll(".deck-groupby button").forEach(b=>b.onclick=()=>{DECK_GROUP=b.dataset.grp;renderDeckContents();const d=box.querySelector(".deck-browse");if(d)d.open=true;});
+    ${flaggedCards.length?`<div class="deck-flagged-sec"><div class="dfh">⚑ Flagged (${flaggedCards.length}) <button class="btn ghost sm" id="reviewFlagged">Review flagged</button> <button class="btn ghost sm" id="clearFlagged">Clear all</button></div><div>${flaggedCards.map(c=>`<span class="flag-card" title="${escAttr(cleanTitle(c.title))}">${escHtml(c.cat==="vocab"&&isVocabWord(c)?vocabTermOf(c):(c.text.length>40?c.text.slice(0,38)+"…":c.text))}<button data-unflag="${escAttr(cardId(c))}" title="Remove flag" aria-label="Remove flag">✕</button></span>`).join("")}</div></div>`:""}
+  `;
+  box.querySelectorAll(".deck-sort button[data-grp]").forEach(b=>b.onclick=()=>{DECK_GROUP=b.dataset.grp;renderDeckContents();});
+  box.querySelectorAll(".deck-sort button[data-sort]").forEach(b=>b.onclick=()=>{DECK_SORT=b.dataset.sort;renderDeckContents();});
+  box.querySelectorAll(".add-deck").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const c=byId.get(b.dataset.add);if(c)chooseDeckFor(c);});
   box.querySelectorAll(".deck-word").forEach(w=>w.onclick=()=>{QUERY=w.dataset.q;const qel=document.getElementById("q");if(qel)qel.value=QUERY;document.querySelector('.tab[data-page="library"]').click();render();document.getElementById("list").scrollIntoView({behavior:"smooth"});});
   const rf=document.getElementById("reviewFlagged");if(rf)rf.onclick=()=>startFlaggedReview();
   const cf=document.getElementById("clearFlagged");if(cf)cf.onclick=()=>{if(lib){lib.flagged=[];}STATE.clips.forEach(c=>c.flagged=false);saveState();renderDeckContents();};
+  box.querySelectorAll("[data-unflag]").forEach(b=>b.onclick=()=>{const id=b.dataset.unflag;if(lib&&lib.flagged)lib.flagged=lib.flagged.filter(x=>x!==id);const c=byId.get(id);if(c)c.flagged=false;saveState();renderDeckContents();});
 }
 function startFlaggedReview(){const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);const flagged=(lib&&lib.flagged)||[];
   const byFp=new Map(STATE.clips.filter(c=>c.type!=="note").map(c=>[cardId(c),c]));
@@ -1975,9 +2108,19 @@ function resumeReview(){
 }
 function startReview(){
   const cats=reviewCats();
-  let cards=STATE.clips.filter(c=>c.type!=="note"&&cats[c.cat]);
-  if(!cards.length){toast("No cards match — pick at least one category with highlights.");return;}
-  cards=cards.slice().sort(()=>Math.random()-0.5);
+  let pool=STATE.clips.filter(c=>c.type!=="note"&&c.cat!=="quotes"&&cats[c.cat]);
+  if(!pool.length){toast("No cards match — pick at least one category with highlights.");return;}
+  // Build a fresh batch each time: a mix of less-reviewed and previously-reviewed cards,
+  // so you don't have to grind the whole library in one sitting.
+  const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+  const seen=shuffle(pool.filter(c=>reviewOf(c).count>0));
+  const fresh=shuffle(pool.filter(c=>reviewOf(c).count===0));
+  const BATCH=Math.min(20,pool.length);
+  // favor under-reviewed cards but always fold in some previously-seen ones for spacing
+  const seenTake=Math.min(seen.length,Math.round(BATCH*0.35));
+  let cards=fresh.slice(0,BATCH-seenTake).concat(seen.slice(0,seenTake));
+  if(cards.length<BATCH){const extra=fresh.slice(BATCH-seenTake).concat(seen.slice(seenTake));cards=cards.concat(extra.slice(0,BATCH-cards.length));}
+  cards=shuffle(cards);
   RV={active:true,cards,i:0,flipped:false,again:[],
     session:{started:Date.now(),total:cards.length,grades:{1:0,2:0,3:0,4:0},seen:0}};
   setSavedSession(null);
@@ -1986,11 +2129,10 @@ function startReview(){
   drawReviewCard();
 }
 function clozeFront(c){
-  // No cloze. Vocab: show the word, define on the back. Quotes/topics: show the full text,
-  // reveal source context (Wikipedia/Wiktionary) on the back.
+  // Vocab: show the word, define on the back. Topics: show the full text, reveal source context on the back.
   if(c.cat==="vocab"&&isVocabWord(c))return {front:vocabTermOf(c)||c.text,hint:"",answer:c.text,kind:"vocab"};
   const terms=termsForClip(c);
-  return {front:c.text,hint:"",answer:terms[0]||"",kind:"quote"};
+  return {front:stripTrailingPunct(c.text),hint:"",answer:stripTrailingPunct(terms[0]||""),kind:"quote"};
 }
 async function drawReviewCard(){
   const stage=document.getElementById("reviewStage");
@@ -2002,12 +2144,14 @@ async function drawReviewCard(){
   }
   const c=RV.cards[RV.i];const cz=clozeFront(c);const n=RV.cards.length;
   const progress=`${RV.i+1} / ${n}`;
-  stage.innerHTML=`<div class="rv-topbar"><span class="rv-progress">${progress}</span><div class="rv-topbtns"><button class="btn ghost sm" id="rvSkip" title="Skip — move on without recording">Skip</button><button class="btn ghost sm" id="rvFlag" title="Flag a problem with this card">⚑ Flag</button><button class="btn ghost sm" id="rvSaveExit">Save &amp; exit</button></div></div>
+  const catCls=c.cat==="vocab"?"c-vocab":"c-topic";const frontCls=c.cat==="vocab"?"is-vocab":"is-topicc";
+  stage.innerHTML=`<div class="rv-topbar"><span class="rv-progress">${progress}</span><div class="rv-topbtns"><button class="btn ghost sm" id="rvPrev" title="Previous card"${RV.i===0?" disabled":""}>← Back</button><button class="btn ghost sm" id="rvSkip" title="Skip — move on without recording">Skip</button><button class="btn ghost sm" id="rvFlag" title="Flag a problem with this card">⚑ Flag</button><button class="btn ghost sm" id="rvSaveExit">Save &amp; exit</button></div></div>
     <div class="rv-card">
-      <div class="rv-cat pill">${CAT_LABELS[c.cat]||"unsorted"}</div>
-      <div class="rv-front${cz.kind==="quote"?" is-quote":""}">${escHtml(cz.front)} ${cz.hint?`<span class="rv-hintlabel">${cz.hint}</span>`:""}</div>
+      <div class="rv-cat lab ${catCls}">${CAT_LABELS[c.cat]||"untagged"}</div>
+      <div class="rv-front ${frontCls}${cz.kind==="quote"?" is-quote":""}">${escHtml(cz.front)} ${cz.hint?`<span class="rv-hintlabel">${cz.hint}</span>`:""}</div>
       <div class="rv-back" id="rvBack" style="display:none"><div class="rv-loading">Looking up…</div></div>
       <div class="rv-src">${escHtml(cleanTitle(c.title))}${c.author?" · "+escHtml(c.author):""}${c.page?" · p."+escHtml(c.page):""}</div>
+      <div class="rv-cardbtns"><button class="btn ghost sm" id="rvFind">Find in library</button><button class="btn ghost sm" id="rvAddDeck">＋ Add to deck</button></div>
       <div class="rv-controls" id="rvControls">
         <button class="btn ghost" id="rvFlip">Flip (Space)</button>
       </div>
@@ -2015,8 +2159,23 @@ async function drawReviewCard(){
   RV.flipped=false;
   document.getElementById("rvFlip").onclick=flipReviewCard;
   document.getElementById("rvSkip").onclick=skipReview;
+  document.getElementById("rvPrev").onclick=goBackReview;
+  document.getElementById("rvFind").onclick=()=>jumpToClipInLibrary(c);
+  document.getElementById("rvAddDeck").onclick=()=>chooseDeckFor(c);
   document.getElementById("rvFlag").onclick=()=>flagReview(c);
   document.getElementById("rvSaveExit").onclick=()=>{saveReviewSession();resetReviewSetup();toast("Session saved — resume any time.");};
+}
+function goBackReview(){if(!RV.active||RV.i<=0)return;RV.i--;RV.flipped=false;drawReviewCard();}
+function jumpToClipInLibrary(c){
+  endReview();
+  QUERY="";const qel=document.getElementById("q");if(qel)qel.value="";
+  // make sure every category is visible so the target clip actually renders
+  document.querySelectorAll('#catFilters .chip').forEach(ch=>ch.dataset.on="1");
+  if(typeof CAT_FILTER!=="undefined"&&CAT_FILTER)Object.keys(CAT_FILTER).forEach(k=>CAT_FILTER[k]=true);
+  const tab=document.querySelector('.tab[data-page="library"]');if(tab)tab.click();
+  render();
+  const fp=cardId(c);
+  setTimeout(()=>{const t=document.querySelector(`.clip[data-fp="${CSS.escape(fp)}"]`);if(t){const bk=t.closest(".book");if(bk)bk.classList.remove("collapsed");t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.add("pulse");setTimeout(()=>t.classList.remove("pulse"),1800);}else toast("Highlight is in your library.");},80);
 }
 function skipReview(){if(!RV.active)return;RV.i++;RV.flipped=false;drawReviewCard();}
 function flagReview(c){if(!c)return;c.flagged=true;const rk=c.fp||clipFp(c);
@@ -2028,13 +2187,12 @@ async function flipReviewCard(){
   const cz=clozeFront(c);
   let html="";
   if(c.cat==="vocab"){const w=await fetchWiktionary(vocabTermOf(c));
-    html=`<div class="rv-answer">${escHtml(c.text)}</div>`+
-      (w.definition?`<div class="t-field"><span class="fl">Definition</span>${escHtml(w.definition)}</div>`:"")+
+    html=(w.definition?`<div class="t-field"><span class="fl">Definition</span>${escHtml(w.definition)}</div>`:"")+
       (w.example?`<div class="t-field"><span class="fl">Example${w.exampleSource?" · "+w.exampleSource:""}</span><i>${escHtml(w.example)}</i></div>`:"")+
       (w.etymology?`<div class="t-field"><span class="fl">Etymology</span>${escHtml(w.etymology)}</div>`:"");
-    if(!w.definition&&!w.etymology&&!w.example)html=`<div class="rv-answer">${escHtml(c.text)}</div><div class="t-load">No Wiktionary entry.</div>`;
+    if(!w.definition&&!w.etymology&&!w.example)html=`<div class="t-load">No dictionary entry found for this word.</div>`;
   }else{const term=cz.answer||clipKeyTerm(c);const wk=await fetchWiki(term);
-    html=(cz.answer?`<div class="rv-answer">${escHtml(cz.answer)}</div>`:"")+
+    html=(cz.answer?`<div class="rv-answer is-topicc">${escHtml(cz.answer)}</div>`:"")+
       (wk?`<div class="t-field"><span class="fl">${escHtml(wk.title)}</span>${escHtml(wk.extract)}</div>`:`<div class="t-load">No Wikipedia summary.</div>`);
   }
   if(back)back.innerHTML=html;
@@ -2069,8 +2227,9 @@ function finishReview(){
   renderReviewHistory();
 }
 function endReview(){if(RV.active){saveReviewSession();}RV.active=false;}
-function renderReviewHistory(){const box=document.getElementById("reviewHistory");if(!box)return;
-  if(!REVIEW_LOG.length){box.innerHTML="";return;}
+function renderReviewHistory(){const statBox=document.getElementById("reviewStats"),box=document.getElementById("reviewHistory");
+  if(!box)return;
+  if(!REVIEW_LOG.length){if(statBox)statBox.innerHTML="";box.innerHTML="";return;}
   const sessions=REVIEW_LOG.slice().reverse(); // oldest -> newest for the chart
   const totalSeen=REVIEW_LOG.reduce((s,r)=>s+r.total,0);
   const totalGood=REVIEW_LOG.reduce((s,r)=>s+(r.grades[3]+r.grades[4]),0);
@@ -2096,7 +2255,7 @@ function renderReviewHistory(){const box=document.getElementById("reviewHistory"
   const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
   const dots=pts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="var(--gold)" stroke="var(--paper)" stroke-width="1"/>`).join("");
   const fmt=t=>new Date(t).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"2-digit"});
-  box.innerHTML=`
+  if(statBox)statBox.innerHTML=`
     <div class="rv-hist-head">Your review stats</div>
     <div class="rv-stat-tiles">${tiles.map(([l,v])=>`<div class="rv-tile"><b>${v}</b><span>${l}</span></div>`).join("")}</div>
     <div class="rv-chart-wrap">
@@ -2106,11 +2265,13 @@ function renderReviewHistory(){const box=document.getElementById("reviewHistory"
         ${dots}
       </svg>
       <div class="rv-chart-legend"><span><i style="background:#b0485a"></i>again</span><span><i style="background:#c08a3a"></i>hard</span><span><i style="background:var(--verd)"></i>good</span><span><i style="background:var(--lapis)"></i>easy</span><span><i style="background:var(--gold)"></i>accuracy</span></div>
-    </div>
-    <div class="rv-hist-head" style="margin-top:18px">Past sessions</div>
+    </div>`;
+  box.innerHTML=`
+    <details class="rv-sessions">
+    <summary>Past sessions (${REVIEW_LOG.length})</summary>
     <table class="rv-hist"><thead><tr><th>Date</th><th>Cards</th><th>Accuracy</th><th>A/H/G/E</th><th></th></tr></thead><tbody>`+
     REVIEW_LOG.map((r,i)=>`<tr><td>${fmt(r.date)}</td><td>${r.total}</td><td>${r.acc}%</td><td>${r.grades[1]}/${r.grades[2]}/${r.grades[3]}/${r.grades[4]}</td><td><button class="rv-del" data-i="${i}" title="Delete this session" aria-label="Delete this session">✕</button></td></tr>`).join("")+
-    `</tbody></table>`;
+    `</tbody></table></details>`;
   box.querySelectorAll(".rv-del").forEach(b=>b.onclick=()=>{
     const i=+b.dataset.i;if(i<0||i>=REVIEW_LOG.length)return;
     if(!confirm("Delete this review session from your history?"))return;
@@ -2158,7 +2319,7 @@ function ingest(text,filename,fromSample){let clips=[];
         else{ex.text=c.text;ex.cat=ex.catLocked?ex.cat:autoCategorize(ex);changed++;}
       }});
     toast(added||changed?`Merged: ${added} new, ${changed} updated.`:"No new highlights — library already up to date.");
-    IMPORT_LOG.unshift({batch,date:when,name:filename||"import",added,updated:changed,total:STATE.clips.length});
+    if(added||changed)IMPORT_LOG.unshift({batch,date:when,name:filename||"import",added,updated:changed,total:STATE.clips.length});
   }
   IMPORT_LOG=IMPORT_LOG.slice(0,100);
   IS_SAMPLE=!!fromSample;
@@ -2237,6 +2398,7 @@ function switchLibrary(id){if(id===ACTIVE_LIB)return;const lib=LIBRARIES.find(l=
   syncActiveLib();ACTIVE_LIB=id;loadLibIntoState(lib);saveState();
   if(STATE.clips.length){document.getElementById("drop").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showSurprise();render();}
   else{document.getElementById("app").classList.add("hidden");document.getElementById("drop").classList.remove("hidden");}
+  if(typeof updateSampleBtn==="function")updateSampleBtn();
   renderDropPanel();}
 function createLibraryQuiet(name){syncActiveLib();
   const lib={id:newLibId(),name:name||"New library",clips:[],decks:[],activeDeck:null,catRules:[],reviewLog:[],importLog:[],isSample:false};
@@ -2296,7 +2458,8 @@ const drop=document.getElementById("drop");
 ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));
 drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{if(/\.json$/i.test(f.name))importLibraryJson(r.result);else ingest(r.result,f.name);};r.readAsText(f);});
-document.getElementById("q").oninput=e=>{QUERY=e.target.value;render();renderMemoryResults();};
+document.getElementById("q").oninput=e=>{QUERY=e.target.value;render();renderMemoryResults();const cb=document.getElementById("clearSearch");if(cb)cb.style.display=e.target.value?"block":"none";};
+(function(){const cb=document.getElementById("clearSearch");if(cb)cb.onclick=()=>{const q=document.getElementById("q");if(q)q.value="";QUERY="";const box=document.getElementById("memoryResults");if(box){box.classList.remove("show");box.innerHTML="";}cb.style.display="none";render();if(q)q.focus();};})();
 document.getElementById("sortSel").onchange=e=>{SORT=e.target.value;render();};
 document.getElementById("libCollapse").onclick=()=>{
   const btn=document.getElementById("libCollapse");
@@ -2329,7 +2492,7 @@ document.querySelectorAll(".xp-tab").forEach(t=>t.onclick=()=>{XP_VIEW=t.dataset
 document.querySelectorAll("#bookSizeToggle button").forEach(btn=>btn.onclick=()=>{BOOK_SIZE=btn.dataset.sz;render();});
 document.getElementById("spAgain").onclick=showSurprise;
 document.getElementById("addDeck").onclick=()=>{const nm=document.getElementById("newDeckName").value.trim();if(!nm){toast("Name the deck first.");return;}
-  const d={id:uid(),name:nm,tags:{vocab:false,quotes:false,topic:false}};STATE.decks.push(d);ACTIVE_DECK=d.id;document.getElementById("newDeckName").value="";saveState();renderAnki();};
+  const d={id:uid(),name:nm,tags:{vocab:false,quotes:false,topic:false},include:[]};STATE.decks.push(d);ACTIVE_DECK=d.id;document.getElementById("newDeckName").value="";saveState();renderAnki();};
 document.getElementById("newDeckName").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("addDeck").click();});
 buildFleur();
 renderMastDivider();
@@ -2385,7 +2548,10 @@ function openLibMenu(){renderLibMenu();document.getElementById("libMenu").classL
 function closeLibMenu(){const m=document.getElementById("libMenu");if(m)m.classList.remove("show");}
 document.getElementById("libSwitchBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
 document.addEventListener("click",e=>{if(!e.target.closest("#libSwitch"))closeLibMenu();});
-document.getElementById("sampleBtn").onclick=()=>{const sample=`Meditations (Marcus Aurelius)
+function backToMyLibrary(){const mine=LIBRARIES.filter(l=>!l.isSample);if(!mine.length){toast("No personal library yet — import your highlights to begin.");return;}
+  switchLibrary(mine[mine.length-1].id);updateSampleBtn();}
+function updateSampleBtn(){const b=document.getElementById("sampleBtn");if(b)b.textContent=IS_SAMPLE?"← Back to my library":"Load a sample";}
+document.getElementById("sampleBtn").onclick=()=>{if(IS_SAMPLE){backToMyLibrary();return;}const sample=`Meditations (Marcus Aurelius)
 - Your Highlight on page 17 | location 305 | Added on Tuesday, 27 August 2024 09:52:34
 
 The happiness of your life depends upon the quality of your thoughts.
@@ -2828,12 +2994,12 @@ xenia
 // Load the sample into its own dedicated "Sample" library (reuse if it already exists)
 syncActiveLib();
 const existingSample=LIBRARIES.find(l=>l.isSample);
-if(existingSample){switchLibrary(existingSample.id);return;}
+if(existingSample){switchLibrary(existingSample.id);updateSampleBtn();return;}
 createLibraryQuiet("Sample");
 ingest(sample,"Marginalia sample.txt",true);
 const SAMPLE_CATS=["quotes", "quotes", "vocab", "quotes", "vocab", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "vocab", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "topic", "vocab", "quotes", "vocab", "quotes", "quotes", "topic", "quotes", "vocab", "quotes", "quotes", "topic", "vocab", "quotes", "quotes", "quotes", "topic", "topic", "vocab", "quotes", "quotes", "topic", "quotes", "quotes", "vocab", "quotes", "topic", "quotes", "vocab", "quotes", "quotes", "quotes", "quotes", "topic", "vocab", "quotes", "topic", "quotes", "quotes", "quotes", "quotes", "topic", "topic", "vocab", "quotes", "topic", "vocab", "quotes", "topic", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "quotes", "vocab", "quotes", "topic", "quotes", "topic", "vocab"];
 STATE.clips.filter(c=>c.type!=="note").forEach((c,i)=>{if(SAMPLE_CATS[i]){c.cat=SAMPLE_CATS[i];c.catLocked=true;}});
-saveState();render();renderDropPanel();};
+saveState();render();renderDropPanel();updateSampleBtn();};
 </script>
 </body>
 </html>
