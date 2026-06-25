@@ -1,3 +1,11 @@
 *
 !index.html
+!CLAUDE.md
+!styles.css
+!js/
+!js/**
+!.claude/
+!.claude/**
+!docs/
+!docs/**
 !.gitignore
