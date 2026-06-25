@@ -9,9 +9,6 @@ function annotateTerms(text){
       connector:CONNECTORS.test(core),common:COMMON_CAP.test(core.replace(/\./,"")),attachNoun:ATTACH_NOUN.test(core),
       breaksAfter:/[,;:)]/.test(trail)||/[—–]$/.test(trail)||internalDash,breaksBefore:/[(]/.test(lead),endsSentence:/[.!?]$/.test(trail)});}
   let prevEnded=true;for(const w of words){w.sentStart=prevEnded;prevEnded=w.endsSentence&&!w.init;}
-  // a capitalized word appearing mid-sentence is a strong proper-noun signal; track it
-  const midCapCount={};for(const w of words){if(w.cap&&!w.sentStart&&!w.common&&!w.connector){const k=w.core.toLowerCase();midCapCount[k]=(midCapCount[k]||0)+1;}}
-  const isPlainCap=w=>/^[A-ZÀ-Þ][a-zà-ÿ'’\-]+$/.test(w.core)&&!w.allcaps&&!/[A-Z].*[A-Z]/.test(w.core)&&!/['’][A-Z]/.test(w.core);
   const shortClip=words.length<=3;
   let out="",i=0;
   while(i<words.length){const w=words[i];const eligible=(w.cap||w.init)&&!w.common;
@@ -26,8 +23,7 @@ function annotateTerms(text){
     while(run.length&&run[run.length-1].connector){run.pop();}
     if(!run.length){out+=w.raw+w.space;i++;continue;}
     const realJ=i+run.length;const hasRealName=run.some(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init);
-    const single=run.length===1;let ambiguous=single&&run[0].sentStart&&(SENTENCE_LEAD_STOP.test(run[0].core)||run[0].connector)&&!run[0].allcaps;
-    if(single&&run[0].sentStart&&isPlainCap(run[0])&&!(midCapCount[run[0].core.toLowerCase()]>0))ambiguous=true;
+    const single=run.length===1;const ambiguous=single&&run[0].sentStart&&(SENTENCE_LEAD_STOP.test(run[0].core)||run[0].connector)&&!run[0].allcaps;
     if(hasRealName&&!ambiguous){const lead=run[0].lead,trail=run[run.length-1].trail;
       let display=run.map((r,k)=>{let s=r.raw;if(k===0)s=s.slice(lead.length);if(k===run.length-1)s=s.slice(0,s.length-trail.length);return s;}).join(" ");
       const term=lookupForm(display);const spaceAfter=run[run.length-1].space;

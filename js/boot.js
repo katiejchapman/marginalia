@@ -72,6 +72,10 @@ document.addEventListener("keydown",e=>{
   else if(["1","2","3","4"].includes(e.key)){if(RV.flipped){e.preventDefault();gradeReview(+e.key);}}
   else if(e.key==="Escape"){finishReview();}
 });
+// Escape backs out of the import / restore / history view without doing anything
+document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
+  const d=document.getElementById("drop");
+  if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();});
 
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
 fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ingest(r.result,f.name);fileInput.value="";};r.readAsText(f);};
