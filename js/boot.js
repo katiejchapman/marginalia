@@ -107,6 +107,7 @@ if(_startOver)_startOver.onclick=()=>{
 };
 (function(){const ds=document.getElementById("densSel");const saved=(localStorage.getItem("marginalia.density")||"comfortable");DENSITY=saved;if(ds){ds.value=saved;ds.onchange=()=>applyDensity(ds.value);}applyDensity(saved);})();
 document.querySelectorAll("#catFilters .chip").forEach(ch=>{ch.onclick=()=>{const k=ch.dataset.cat;CAT_FILTER[k]=CAT_FILTER[k]?0:1;ch.dataset.on=CAT_FILTER[k]?1:0;render();};});
+document.getElementById("notesToggle").onclick=function(){SHOW_NOTES=!SHOW_NOTES;this.dataset.on=SHOW_NOTES?1:0;render();};
 document.querySelectorAll("#reviewCats .chip").forEach(ch=>{ch.onclick=()=>{ch.dataset.on=ch.dataset.on==="1"?"0":"1";};});
 document.getElementById("reviewStartBtn").onclick=startReview;
 document.getElementById("connAll").onchange=renderConnections;
@@ -117,6 +118,7 @@ document.getElementById("connCollapse").onclick=()=>{
   document.getElementById("connCollapse").textContent=anyOpen?"Expand all":"Collapse all";
 };
 document.querySelectorAll(".xp-tab").forEach(t=>t.onclick=()=>{XP_VIEW=t.dataset.xp;renderExplore();});
+document.querySelectorAll("#tlGrain button").forEach(b=>b.onclick=()=>{TL_GRAIN=b.dataset.grain;document.querySelectorAll("#tlGrain button").forEach(x=>x.dataset.on=x===b?1:0);renderTimeline();});
 document.querySelectorAll("#bookSizeToggle button").forEach(btn=>btn.onclick=()=>{BOOK_SIZE=btn.dataset.sz;render();});
 document.getElementById("spAgain").onclick=showSurprise;
 document.getElementById("addDeck").onclick=()=>{const nm=document.getElementById("newDeckName").value.trim();if(!nm){toast("Name the deck first.");return;}

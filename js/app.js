@@ -4,7 +4,7 @@ let REVIEW_LOG=[]; // past review sessions {date,total,acc,grades}
 let IMPORT_LOG=[]; // past imports {date,name,added,updated,total}
 let IS_SAMPLE=false; // true while the built-in sample is loaded
 let CAT_FILTER={vocab:1,quotes:1,topic:1,none:1};
-let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true;
+let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true,SHOW_NOTES=true,TL_GRAIN="week";
 // NOTE: keys (vocab/quotes/topic) are DATA — never change them. Values are DISPLAY LABELS.
 // The quotes label is the singular "quote" everywhere. See CLAUDE.md "Tags vs labels".
 const CAT_LABELS={vocab:"vocab",quotes:"quote",topic:"topic of interest"};
@@ -164,6 +164,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     const notesFor=new Map(),attached=new Set();
     book.clips.forEach(c=>{if(c.type!=="note"){const ns=noteMap.get(locKey(c));if(ns&&ns.length){notesFor.set(c,ns);ns.forEach(n=>attached.add(n));}}});
     let clips=book.clips.filter(c=>{if(c.type==="note"&&attached.has(c))return false;
+      if(c.type==="note"&&!SHOW_NOTES)return false;
       if(!CAT_FILTER[c.cat])return false;
       if(q){const ns=notesFor.get(c),noteHit=ns&&ns.some(n=>n.text.toLowerCase().includes(q));
         if(!(c.text.toLowerCase().includes(q)||book.title.toLowerCase().includes(q)||(book.author||"").toLowerCase().includes(q)||noteHit))return false;}return true;});
@@ -184,7 +185,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
       const editedTag=c.edited?'<span class="pill edited-pill" title="You edited this highlight">edited</span>':"";
       const updateTag=c.incoming?`<button class="upd-pill" title="A re-import has different text — click to review">update available</button>`:"";
       div.dataset.cat=c.cat||"none";
-      const attNotes=notesFor.get(c),notesHtml=attNotes?attNotes.map(n=>`<div class="clip-note"><span class="cn-lab">note</span>${escHtml(n.text)}</div>`).join(""):"";
+      const attNotes=notesFor.get(c),notesHtml=(SHOW_NOTES&&attNotes)?attNotes.map(n=>`<div class="clip-note"><span class="cn-lab">note</span>${escHtml(n.text)}</div>`).join(""):"";
       div.innerHTML=`<div class="loc">${locTxt}${c.type==="note"?'<br><span class="pill">note</span>':""}<div class="clip-actions"><button class="edit-btn" title="Edit this highlight" aria-label="Edit">✎</button><button class="del-btn" title="Delete this highlight" aria-label="Delete">✕</button></div></div>
         <div class="body"><span class="cat-line" title="${CAT_LABELS[c.cat]||"untagged"}"></span><p class="text">${bodyHtml}</p>${notesHtml}
           <div class="meta"><div class="catpick" role="group" aria-label="Set tag">
@@ -394,24 +395,37 @@ function renderTimeline(){
   const dates=dated.map(parseDate).sort((a,b)=>a-b);
   const min=dates[0],max=dates[dates.length-1];
   const span=Math.max(1,(max-min)/86400000);
-  const buckets=Math.min(40,Math.max(8,Math.ceil(span/ (span>180?14:span>60?7:3))));
+  const grainDays=TL_GRAIN==="day"?1:7;
+  let buckets=Math.max(1,Math.ceil(span/grainDays));if(buckets>366)buckets=366; // safety cap for very long ranges
   const bw=(max-min)/buckets||1;
-  const counts=new Array(buckets).fill(0).map(()=>({vocab:0,quotes:0,topic:0,none:0,total:0}));
-  dated.forEach(c=>{const d=parseDate(c);let bi=Math.min(buckets-1,Math.floor((d-min)/bw));counts[bi][c.cat]=(counts[bi][c.cat]||0)+1;counts[bi].total++;});
+  const counts=new Array(buckets).fill(0).map(()=>({vocab:0,quotes:0,topic:0,none:0,total:0,night:0}));
+  dated.forEach(c=>{const d=parseDate(c);let bi=Math.min(buckets-1,Math.floor((d-min)/bw));counts[bi][c.cat]=(counts[bi][c.cat]||0)+1;counts[bi].total++;const h=d.getHours();if(h>=20||h<6)counts[bi].night++;});
   const maxC=Math.max(1,...counts.map(b=>b.total));
-  const W=900,H=170,pad=4;
+  const W=900,H=170,pad=4,bwid=(W-2*pad)/buckets;
   const col={vocab:"var(--cat-vocab)",quotes:"var(--cat-quotes)",topic:"var(--cat-topic)",none:"var(--cat-none)"};
-  // smooth stacked area (replaces the bar chart) — monotone-ish cubic through bucket centers
-  const N=buckets,Xc=i=>+(pad+(N>1?i/(N-1):0)*(W-2*pad)).toFixed(1);
-  const spline=pts=>{if(!pts.length)return"";let p=`M${pts[0][0]} ${pts[0][1].toFixed(1)}`;for(let i=0;i<pts.length-1;i++){const[x0,y0]=pts[i],[x1,y1]=pts[i+1];const mx=((x0+x1)/2).toFixed(1);p+=` C${mx} ${y0.toFixed(1)} ${mx} ${y1.toFixed(1)} ${x1} ${y1.toFixed(1)}`;}return p;};
-  const band=(top,bot)=>spline(top)+" L"+bot.slice().reverse().map(p=>p[0]+" "+p[1].toFixed(1)).join(" L")+" Z";
-  let areas="";const low=counts.map(()=>H-2);
-  ["none","vocab","quotes","topic"].forEach(k=>{const top=[],bot=[];counts.forEach((b,i)=>{const y0=low[i],y1=low[i]-(b[k]/maxC)*(H-14);bot.push([Xc(i),y0]);top.push([Xc(i),y1]);low[i]=y1;});areas+=`<path d="${band(top,bot)}" fill="${col[k]}" opacity=".9"/>`;});
-  const grid=[0.5,1].map(f=>`<line x1="0" y1="${(H-2-f*(H-14)).toFixed(1)}" x2="${W}" y2="${(H-2-f*(H-14)).toFixed(1)}" stroke="var(--rule)" stroke-width="1" opacity=".4"/>`).join("");
-  chart.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">${grid}${areas}</svg>`;
+  // stacked bar chart
+  let bars="";
+  counts.forEach((b,i)=>{const x=pad+i*bwid;let y=H;["topic","quotes","vocab","none"].forEach(k=>{const h=(b[k]/maxC)*(H-10);if(h>0){y-=h;bars+=`<rect x="${(x+1).toFixed(1)}" y="${y.toFixed(1)}" width="${(bwid-2).toFixed(1)}" height="${h.toFixed(1)}" fill="${col[k]}" rx="1"/>`;}});});
+  chart.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">${bars}</svg>`;
   const fmt=d=>d.toLocaleDateString(undefined,{month:"short",year:"2-digit"});
   const fmtD=d=>`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`;
   axis.innerHTML=`<span>${fmt(min)}</span><span>${fmt(new Date((+min+ +max)/2))}</span><span>${fmt(max)}</span>`;
+  // hover tooltip: date + per-tag breakdown + 🌙 when most that period were made at night
+  let tlTip=document.getElementById("tlChartTip");
+  if(!tlTip){tlTip=document.createElement("div");tlTip.id="tlChartTip";tlTip.className="tl-chart-tip";document.body.appendChild(tlTip);}
+  const ttLab={topic:"topic",quotes:"quote",vocab:"vocab",none:"untagged"};
+  chart.style.cursor="crosshair";
+  chart.onmousemove=e=>{const r=chart.getBoundingClientRect();if(!r.width)return;let i=Math.floor((e.clientX-r.left)/r.width*buckets);i=Math.max(0,Math.min(buckets-1,i));const b=counts[i];
+    if(!b||!b.total){tlTip.style.display="none";return;}
+    const d0=new Date(+min+i*bw),d1=new Date(+min+(i+1)*bw-86400000);
+    const dateTxt=fmtD(d0)+(+d1>+d0?" – "+fmtD(d1):"");
+    const night=b.night>b.total/2;
+    let rows="";["topic","quotes","vocab","none"].forEach(k=>{if(b[k])rows+=`<div class="tr"><span><i style="background:${col[k]}"></i>${ttLab[k]}</span><b>${b[k]}</b></div>`;});
+    tlTip.innerHTML=`<div class="tt-date">${dateTxt}${night?' <span class="tt-moon" title="most made at night">🌙</span>':''}</div>${rows}`;
+    tlTip.style.display="block";
+    let x=e.clientX+14,y=e.clientY-10;if(x+186>innerWidth)x=e.clientX-198;if(y<8)y=8;
+    tlTip.style.left=x+"px";tlTip.style.top=y+"px";};
+  chart.onmouseleave=()=>{tlTip.style.display="none";};
   const books=new Set(dated.map(c=>cleanTitle(c.title))).size;
   head.textContent=`Reading timeline — ${dated.length} highlights, ${books} books, ${fmt(min)}–${fmt(max)}`;
   const byCat=k=>dated.filter(c=>c.cat===k).length;
@@ -783,9 +797,7 @@ function renderBookStats(){const box=document.getElementById("bookStats");if(!bo
     STATE.clips.filter(c=>c.type!=="note").forEach(c=>{const a=(c.author||"").trim()||"Unknown author";if(!am.has(a))am.set(a,{title:a,author:"",key:"auth-"+a,clips:[]});am.get(a).clips.push(c);});
     books=[...am.values()];
   }else books=groupByBook();
-  const noteCount=STATE.clips.filter(c=>c.type==="note").length;
-  const notesLine=noteCount?`<div class="bs-noteline">✑ ${noteCount} margin note${noteCount===1?"":"s"} across your library</div>`:"";
-  const toggle=`<div class="bs-groupby"><button data-bsg="book" data-on="${BOOKSTATS_GROUP==="book"?1:0}">by book</button><button data-bsg="author" data-on="${BOOKSTATS_GROUP==="author"?1:0}">by author</button></div>`+notesLine;
+  const toggle=`<div class="bs-groupby"><button data-bsg="book" data-on="${BOOKSTATS_GROUP==="book"?1:0}">by book</button><button data-bsg="author" data-on="${BOOKSTATS_GROUP==="author"?1:0}">by author</button></div>`;
   if(!books.length){box.innerHTML=toggle+'<div class="empty">Import highlights first.</div>';bsWireToggle(box);return;}
   const fmt=d=>d?`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`:"—";
   const rows=books.map(b=>{const by={vocab:0,quotes:0,topic:0,none:0};

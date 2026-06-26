@@ -153,6 +153,7 @@
           <button class="chip c-topic" data-cat="topic" data-on="1" title="topic of interest"><span class="dot" style="background:var(--cat-topic)"></span>topic</button>
           <button class="chip c-none" data-cat="none" data-on="1" title="untagged"><span class="dot" style="background:var(--cat-none)"></span>untagged</button>
         </div>
+        <button class="notes-pill" id="notesToggle" data-on="1" title="Show or hide your margin notes"><span class="np-icon">✑</span>notes</button>
         <div class="toolbar-actions">
           <select class="filter" id="sortSel">
             <option value="page">by page</option>
@@ -178,7 +179,10 @@
   <!-- ANKI -->
   <!-- TIMELINE -->
   <div id="pageTimeline">
-    <div class="tl-head" id="tlHead">Reading timeline</div>
+    <div class="tl-headrow">
+      <div class="tl-head" id="tlHead">Reading timeline</div>
+      <div class="tl-grain" id="tlGrain"><button data-grain="week" data-on="1">week</button><button data-grain="day" data-on="0">day</button></div>
+    </div>
     <div class="tl-card">
       <div class="tl-chartwrap"><div id="tlChart"></div><div class="tl-readout" id="tlReadout"></div></div>
       <div class="tl-axis" id="tlAxis"></div>
