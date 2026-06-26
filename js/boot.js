@@ -10,14 +10,13 @@ document.getElementById("replayGate")?.addEventListener("click",()=>{
   libraryGate.classList.remove("hidden","opening");
 });
 
-/* ---------- Mode / cursor / nav toggles ---------- */
-document.getElementById("modeToggle").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  root.setAttribute("data-mode",b.dataset.mode);document.querySelectorAll("#modeToggle button").forEach(x=>x.dataset.on=x===b?1:0);});
+/* ---------- Mode / cursor toggles (one 4-cell grid) ---------- */
+document.getElementById("ctrlGrid").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.mode){root.setAttribute("data-mode",b.dataset.mode);document.querySelectorAll("#ctrlGrid button[data-mode]").forEach(x=>x.dataset.on=x===b?1:0);}
+  else if(b.dataset.cur){LAMP_ON=b.dataset.cur==="lamp";document.querySelectorAll("#ctrlGrid button[data-cur]").forEach(x=>x.dataset.on=x===b?1:0);
+    document.body.classList.toggle("lampcursor",LAMP_ON);
+    if(!LAMP_ON){document.getElementById("lampHalo").style.display="none";document.getElementById("lampCursor").style.display="none";}}});
 root.setAttribute("data-mode","dark");
-document.getElementById("cursorToggle").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
-  LAMP_ON=b.dataset.cur==="lamp";document.querySelectorAll("#cursorToggle button").forEach(x=>x.dataset.on=x===b?1:0);
-  document.body.classList.toggle("lampcursor",LAMP_ON);
-  if(!LAMP_ON){document.getElementById("lampHalo").style.display="none";document.getElementById("lampCursor").style.display="none";}});
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;
   PAGE=b.dataset.page;document.querySelectorAll(".tab").forEach(t=>t.dataset.on=t===b?1:0);
   document.getElementById("pageLibrary").style.display=PAGE==="library"?"":"none";
@@ -78,6 +77,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();});
 
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
+document.getElementById("backToLib").onclick=()=>{if(typeof closeImport==="function")closeImport();};
 fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ingest(r.result,f.name);fileInput.value="";};r.readAsText(f);};
 document.getElementById("restoreBtn").onclick=()=>fileJson.click();
 fileJson.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{importLibraryJson(r.result);fileJson.value="";};r.readAsText(f);};

@@ -336,6 +336,7 @@ async function exportAllDecks(){const wc=STATE.decks.filter(d=>clipsForDeck(d).l
 function exportJson(){exportLibraryJson();}
 const PUB_KEYWORDS=/(edition|classics?|contemporaries|international|library|series|annotated|illustrated|unabridged|abridged|reprint|paperb(ack|ook)|hardcover|vol\.?\s*\w+|book\s*\d+|new directions|penguin|vintage|modern library|everyman|norton|oxford|bantam|anchor|knopf|picador|faber|harper|press|deluxe|centennial|anniversary|kindle|publishing|publisher|corporation|company|inc\b|ltd\b|llc\b)/i;
 function cleanTitle(raw){let t=(raw||"").trim();
+  t=t.replace(/_+/g," ").trim(); // filename-style underscores → spaces ("A_Heart_So_White")
   t=t.replace(/[\(\[\{]?\s*ocean\s*of\s*pdf(\s*\.\s*com)?\s*[\)\]\}]?/ig,"").trim();
   if(/\s--\s/.test(t))t=t.split(/\s--\s/)[0].trim();
   t=t.replace(/\s*\d{9,13}[\dxX]?\s*$/,"").trim();
@@ -378,7 +379,7 @@ function renderTimeline(){
   counts.forEach((b,i)=>{const x=pad+i*bwid;let y=H;["topic","quotes","vocab","none"].forEach(k=>{const h=(b[k]/maxC)*(H-10);if(h>0){y-=h;bars+=`<rect x="${(x+1).toFixed(1)}" y="${y.toFixed(1)}" width="${(bwid-2).toFixed(1)}" height="${h.toFixed(1)}" fill="${col[k]}" rx="1"/>`;}});});
   chart.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">${bars}</svg>`;
   const fmt=d=>d.toLocaleDateString(undefined,{month:"short",year:"2-digit"});
-  const fmtD=d=>d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"2-digit"});
+  const fmtD=d=>d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
   axis.innerHTML=`<span>${fmt(min)}</span><span>${fmt(new Date((+min+ +max)/2))}</span><span>${fmt(max)}</span>`;
   const books=new Set(dated.map(c=>cleanTitle(c.title))).size;
   head.textContent=`Reading timeline — ${dated.length} highlights, ${books} books, ${fmt(min)}–${fmt(max)}`;
@@ -409,9 +410,9 @@ function renderTimeline(){
     let html="";
     for(let d=new Date(domMin);d<domMax;d=addMonths(d,1)){
       const f=(+d- +domMin)/span2,mo=d.getMonth(),isQ=mo%3===0,isYear=mo===0;
-      if(!isQ)continue; // labeled (quarter) ticks only — no minor month ticks
-      html+=`<div class="tk q" style="left:${(f*100).toFixed(2)}%"></div>`;
-      html+=`<div class="tkl" style="left:${(f*100).toFixed(2)}%">${isYear?d.getFullYear():d.toLocaleDateString(undefined,{month:"short"})}</div>`;
+      // a minor tick every month; quarters get a taller tick + a label
+      html+=`<div class="tk${isQ?" q":""}" style="left:${(f*100).toFixed(2)}%"></div>`;
+      if(isQ)html+=`<div class="tkl" style="left:${(f*100).toFixed(2)}%">${isYear?d.getFullYear():d.toLocaleDateString(undefined,{month:"short"})}</div>`;
     }
     layer.innerHTML=html;
   })();
@@ -483,7 +484,14 @@ const THEME_DEMOTE=new Set((
 function isThemeWord(w){const lw=(w||"").toLowerCase();return lw.length>=4&&!CONN_STOP.has(lw)&&!THEME_DEMOTE.has(lw)&&!(typeof THEME_BAD_WORDS!=="undefined"&&THEME_BAD_WORDS.has(lw));}
 function keywordsForClip(c){
   const out=new Map(); // stem -> {disp, weight, entity}
-  const add=(s,disp,w,ent)=>{if(!s)return;const ex=out.get(s);if(!ex)out.set(s,{disp,weight:w,entity:!!ent});else{ex.weight=Math.max(ex.weight,w);ex.entity=ex.entity||!!ent;if(disp.length>ex.disp.length||(/[A-Z]/.test(disp)&&!/[A-Z]/.test(ex.disp)))ex.disp=disp;}};
+  const add=(s,disp,w,ent)=>{if(!s)return;const ex=out.get(s);if(!ex){out.set(s,{disp,weight:w,entity:!!ent});return;}
+    ex.weight=Math.max(ex.weight,w);ex.entity=ex.entity||!!ent;
+    const multi=/\s/.test(disp)||/\s/.test(ex.disp);
+    if(multi){if(disp.length>ex.disp.length||(/[A-Z]/.test(disp)&&!/[A-Z]/.test(ex.disp)))ex.disp=disp;}
+    else{ // single word: prefer a lowercase form so a generic word generalises ("Human" -> "human"); proper nouns that only ever appear capitalised stay capitalised
+      const dLow=disp===disp.toLowerCase(),eLow=ex.disp===ex.disp.toLowerCase();
+      if(dLow&&!eLow)ex.disp=disp;else if(dLow===eLow&&disp.length>ex.disp.length)ex.disp=disp;}
+  };
   // detected proper-noun / multiword entities — strongest signal
   const html=annotateTerms(c.text||"");const re=/data-term="([^"]*)"/g;let m;
   while((m=re.exec(html))){const t=m[1].replace(/&quot;/g,'"').replace(/&amp;/g,"&").trim();
@@ -546,7 +554,7 @@ function renderExplore(){
   else if(XP_VIEW==="books")renderBookStats();
 }
 function normThemeTerm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();}
-function topThemesFromClips(clips,limit=5){const freq=new Map();clips.forEach(c=>{if(c.type==="note")return;
+function topThemesFromClips(clips,limit=5,minBooks=1){const freq=new Map();clips.forEach(c=>{if(c.type==="note")return;
     const boost=1+(c.cat==="topic"?0.6:0)+(c.edited?0.4:0)+(c.cat==="quotes"?0.15:0);
     keywordsForClip(c).forEach((v,s)=>{const disp=v.disp;const clean=disp.toLowerCase().replace(/[^a-z]/g,"");
       if(clean.length<4||THEME_BAD_WORDS.has(clean)||THEME_DEMOTE.has(clean)||THEME_BAD_WORDS.has((s||"").toLowerCase()))return;
@@ -557,7 +565,7 @@ function topThemesFromClips(clips,limit=5){const freq=new Map();clips.forEach(c=
       // case shouldn't matter: general (non-entity) single-word themes display lowercase so "World"/"world" merge cleanly
       if(!x.entity&&!/\s/.test(x.term))x.term=x.term.toLowerCase();
       return x;})
-    .filter(x=>{ if(x.entity&&x.count<2)return false; /* one-off proper noun: needs 2+ highlights to count as a theme */ return x.count>=1;})
+    .filter(x=>{ if(x.books.size<minBooks)return false; /* must recur across enough distinct books */ if(x.entity&&x.count<2)return false; /* one-off proper noun: needs 2+ highlights to count as a theme */ return x.count>=1;})
     .sort((a,b)=>b.score-a.score||b.count-a.count||b.books.size-a.books.size).slice(0,limit);}
 function buildThemeGraph(){const groups=buildConnections(true).slice(0,18);
   const nodes=groups.map((g,i)=>({id:"t"+i,term:g.term,count:g.clips.length,books:g.books.size,clips:g.clips}));
@@ -598,9 +606,11 @@ function themeEvolutionFigure(firstData,secondData){
   </svg>`;
 }
 function themeEvolutionHtml(clips,start,end){const dated=clips.filter(parseDate).sort((a,b)=>parseDate(a)-parseDate(b));
-  if(dated.length<4){return `<h2>Theme evolution</h2><p class="evo-copy">Widen the slider to see how your highlighted ideas shift over time.</p>`;}
+  if(dated.length<4)return ""; // not enough to show a shift — leave out
   const mid=Math.max(1,Math.floor(dated.length/2));const firstHalf=dated.slice(0,mid),secondHalf=dated.slice(mid);
-  const first=topThemesFromClips(firstHalf,4),second=topThemesFromClips(secondHalf,4);
+  // only themes that recur across 2+ books count — a phrase repeated within one book (e.g. a sutra title) is not an evolving theme
+  const first=topThemesFromClips(firstHalf,4,2),second=topThemesFromClips(secondHalf,4,2);
+  if(first.length<2||second.length<2)return ""; // too few genuinely recurring themes — leave out
   const label=d=>d.toLocaleDateString(undefined,{month:"short",day:"numeric"});
   return `<h2>Theme evolution</h2><p class="evo-copy">From <mark>${label(start)}</mark>, your highlights center on ${first.length?first.slice(0,3).map(x=>`<mark>${escHtml(x.term)}</mark>`).join(", "):"a few scattered ideas"}; by <mark>${label(end)}</mark>, they shift toward ${second.length?second.slice(0,3).map(x=>`<mark>${escHtml(x.term)}</mark>`).join(", "):"newer themes"}.</p>`;}
 function renderThemeMap(){const box=document.getElementById("wordCloud");if(!box)return;
@@ -655,7 +665,7 @@ function jumpToMemoryHit(fp){const c=STATE.clips.find(x=>x.fp===fp);if(!c)return
   setTimeout(()=>{const t=document.querySelector(`.clip[data-fp="${CSS.escape(fp)}"]`);if(t){t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.add("pulse");setTimeout(()=>t.classList.remove("pulse"),1800);}},40);}
 /* ---------- Timeline insights (recap + theme evolution) ---------- */
 function renderTimelineInsights(clips,start,end){const recap=document.getElementById("tlRecap"),evo=document.getElementById("tlEvolution");if(!recap||!evo)return;
-  if(!clips.length){recap.innerHTML="";evo.innerHTML="";return;}
+  if(!clips.length){recap.innerHTML="";evo.innerHTML="";evo.style.display="none";return;}
   const fmt=d=>d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
   const total=clips.length,books=[...new Set(clips.map(c=>cleanTitle(c.title)))];const by=k=>clips.filter(c=>c.cat===k).length;const pct=n=>total?Math.round(n/total*100):0;
   const themes=topThemesFromClips(clips,5);const titleCounts=new Map();clips.forEach(c=>titleCounts.set(cleanTitle(c.title),(titleCounts.get(cleanTitle(c.title))||0)+1));
@@ -664,7 +674,8 @@ function renderTimelineInsights(clips,start,end){const recap=document.getElement
     <div class="recap-grid"><div class="recap-stat"><b>${total}</b><span>highlights</span></div><div class="recap-stat"><b>${books.length}</b><span>books</span></div><div class="recap-stat"><b>${pct(by("quotes"))}%</b><span>quotes</span></div><div class="recap-stat"><b>${pct(by("topic"))}%</b><span>topics</span></div></div>
     <div class="tl-subtle"><b style="color:var(--ink)">Most highlighted:</b> ${escHtml(topTitle[0])} · ${topTitle[1]} highlight${topTitle[1]===1?"":"s"}</div>
     <div class="recap-bars">${themes.length?themes.map(t=>`<div class="recap-bar"><span>${escHtml(t.term)}</span><i style="width:${Math.max(12,Math.round(t.count/(themes[0].count||1)*100))}%"></i><em>${t.count}</em></div>`).join(""):'<div class="tl-subtle">No recurring themes yet in this range.</div>'}</div>`;
-  evo.innerHTML=themeEvolutionHtml(clips,start,end);
+  const evoHtml=themeEvolutionHtml(clips,start,end);
+  evo.innerHTML=evoHtml;evo.style.display=evoHtml?"":"none";
 }
 /* ---------- Visitor counter (real global count via free CountAPI) ---------- */
 async function updateVisitorInfo(){const el=document.getElementById("visitorInfo");if(!el)return;
@@ -690,7 +701,7 @@ function vocabRarity(w){w=(w||"").toLowerCase();
 function renderBookStats(){const box=document.getElementById("bookStats");if(!box)return;
   const books=groupByBook();
   if(!books.length){box.innerHTML='<div class="empty">Import highlights first.</div>';return;}
-  const fmt=d=>d?d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}):"—";
+  const fmt=d=>d?`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`:"—";
   const rows=books.map(b=>{const by={vocab:0,quotes:0,topic:0,none:0};
     b.clips.forEach(c=>by[c.cat]=(by[c.cat]||0)+1);
     const dates=b.clips.map(parseDate).filter(Boolean).sort((a,b)=>a-b);
@@ -726,6 +737,7 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
   const fmt=t=>new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
   const activeLib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);
   const hasContent=LIBRARIES.some(l=>(l.clips||[]).length);
+  const backBtn=document.getElementById("backToLib");if(backBtn)backBtn.classList.toggle("hidden",!hasContent);
   const batches=activeLib?(activeLib.importLog||IMPORT_LOG):[];
   box.innerHTML=`
     <div class="dp-card">
@@ -738,14 +750,13 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
         </div>`).join("")}
       </div>
       <div class="dp-actions">
-        ${hasContent?`<button class="btn sm" data-act="done">← Back to library</button>`:""}
         <button class="btn sm" data-act="new">＋ New library</button>
         ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn ghost sm" data-act="export">Export JSON backup</button><button class="btn ghost sm" data-act="dedup">Remove duplicates</button>`:""}
       </div>
       ${batches&&batches.length?`
         <div class="dp-head" style="margin-top:18px">Imports in “${escHtml(activeLib.name)}”</div>
         <table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>New</th><th>Updated</th><th></th></tr></thead><tbody>
-        ${batches.map(r=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.added}</td><td>${r.updated||0}</td><td>${r.batch?`<button class="dp-mini" data-act="rmbatch" data-batch="${r.batch}" title="Undo this import">undo</button>`:""}</td></tr>`).join("")}
+        ${batches.map(r=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.added}</td><td>${r.updated||0}</td><td>${r.batch?`<button class="dp-mini dp-undo" data-act="rmbatch" data-batch="${r.batch}" title="Undo this import — remove the highlights it added" aria-label="Undo this import">✕</button>`:""}</td></tr>`).join("")}
         </tbody></table>`:""}
     </div>`;
   box.querySelectorAll("[data-act]").forEach(el=>{el.onclick=()=>{
@@ -830,10 +841,10 @@ function renderDeckContents(){const box=document.getElementById("deckContents");
     if(DECK_SORT==="reviewed")return arr.sort((a,b)=>reviewOf(b).count-reviewOf(a).count);
     if(DECK_SORT==="hard")return arr.sort((a,b)=>{const ga=avgGrade(reviewOf(a).grades),gb=avgGrade(reviewOf(b).grades);return (ga==null?99:ga)-(gb==null?99:gb);});
     return arr;};
-  const rvn=n=>n?`<span class="rvn" title="${n} review${n===1?"":"s"}">×${n}</span>`:"";
-  const vBtn=o=>`<button class="deck-word" data-q="${escAttr(o.term)}" data-cid="${escAttr(cardId(o.clip))}">${escHtml(o.term)}${rvn(o.count)}<span class="add-deck" data-add="${escAttr(cardId(o.clip))}" title="Add to a deck">＋</span></button>`;
+  const rvn=n=>n?`<span class="rvn" title="${n} review${n===1?"":"s"}">${n}</span>`:"";
+  const vBtn=o=>`<button class="deck-word" data-q="${escAttr(o.term)}" data-cid="${escAttr(cardId(o.clip))}">${escHtml(o.term)}${rvn(o.count)}<span class="add-deck" data-add="${escAttr(cardId(o.clip))}" title="Add to a deck">+</span></button>`;
   const tBtn=c=>{const full=stripTrailingPunct(c.text);const t=full.length>54?full.slice(0,52)+"…":full;
-    return `<button class="deck-word topicw" data-q="${escAttr(c.text.slice(0,40))}" data-cid="${escAttr(cardId(c))}" title="${escAttr(cleanTitle(c.title))}">${escHtml(t)}${rvn(reviewOf(c).count)}<span class="add-deck" data-add="${escAttr(cardId(c))}" title="Add to a deck">＋</span></button>`;};
+    return `<button class="deck-word topicw" data-q="${escAttr(c.text.slice(0,40))}" data-cid="${escAttr(cardId(c))}" title="${escAttr(cleanTitle(c.title))}">${escHtml(t)}${rvn(reviewOf(c).count)}<span class="add-deck" data-add="${escAttr(cardId(c))}" title="Add to a deck">+</span></button>`;};
   const section=(head,sub,inner)=>`<div class="deck-section"><div class="deck-col-head">${escHtml(head)}${sub?`<span class="deck-sub">${escHtml(sub)}</span>`:""}</div><div class="deck-words">${inner||'<span class="deck-empty">none</span>'}</div></div>`;
   let sections="";
   if(DECK_GROUP==="book"){
@@ -844,11 +855,15 @@ function renderDeckContents(){const box=document.getElementById("deckContents");
       sections+=section(b.title,b.author||"",sortVocab(vs).map(vBtn).join("")+sortTopics(ts).map(tBtn).join(""));
     });
   }else{
-    const subLab=DECK_SORT==="reviewed"?"most reviewed":DECK_SORT==="hard"?"hardest first":"rare → common";
+    const subLab=DECK_SORT==="reviewed"?"most reviewed":DECK_SORT==="hard"?"hardest first":"rarest first";
     sections+=section("vocabulary",subLab,vocab.length?sortVocab(vocab).map(vBtn).join(""):"");
     sections+=section("topic of interest",DECK_SORT==="rare"?"":subLab,topics.length?sortTopics(topics).map(tBtn).join(""):"");
   }
   const flaggedCards=flagged.map(id=>byId.get(id)).filter(Boolean);
+  // flagged renders as its own list (like vocab/topic): each entry jumps to the library, with an unflag ✕
+  const fBtn=c=>{const isV=c.cat==="vocab"&&isVocabWord(c);const full=isV?vocabTermOf(c):stripTrailingPunct(c.text);const t=full.length>54?full.slice(0,52)+"…":full;
+    return `<button class="deck-word${c.cat==="topic"?" topicw":""}" data-q="${escAttr(isV?full:c.text.slice(0,40))}" data-cid="${escAttr(cardId(c))}" title="${escAttr(cleanTitle(c.title))}">${escHtml(t)}${rvn(reviewOf(c).count)}<span class="unflag-x" data-unflag="${escAttr(cardId(c))}" title="Remove flag" aria-label="Remove flag">✕</span></button>`;};
+  const flaggedSection=flaggedCards.length?`<div class="deck-section"><div class="deck-col-head">⚑ flagged <span class="deck-sub">${flaggedCards.length}</span> <button class="btn ghost sm" id="reviewFlagged">Review flagged</button> <button class="btn ghost sm" id="clearFlagged">Clear all</button></div><div class="deck-words">${flaggedCards.map(fBtn).join("")}</div></div>`:"";
   box.innerHTML=`
     <div class="deck-toolbar">
       <span class="deck-head-lab">Deck contents</span>
@@ -863,8 +878,7 @@ function renderDeckContents(){const box=document.getElementById("deckContents");
         <option value="hard"${DECK_SORT==="hard"?" selected":""}>hardest first</option>
       </select>
     </div>
-    <div class="deck-sections">${sections}</div>
-    ${flaggedCards.length?`<div class="deck-flagged-sec"><div class="dfh">⚑ Flagged (${flaggedCards.length}) <button class="btn ghost sm" id="reviewFlagged">Review flagged</button> <button class="btn ghost sm" id="clearFlagged">Clear all</button></div><div>${flaggedCards.map(c=>`<span class="flag-card" title="${escAttr(cleanTitle(c.title))}">${escHtml(c.cat==="vocab"&&isVocabWord(c)?vocabTermOf(c):(c.text.length>40?c.text.slice(0,38)+"…":c.text))}<button data-unflag="${escAttr(cardId(c))}" title="Remove flag" aria-label="Remove flag">✕</button></span>`).join("")}</div></div>`:""}
+    <div class="deck-sections">${sections}${flaggedSection}</div>
   `;
   box.querySelectorAll(".deck-group button[data-grp]").forEach(b=>b.onclick=()=>{DECK_GROUP=b.dataset.grp;renderDeckContents();});
   const dss=document.getElementById("deckSortSel");if(dss)dss.onchange=()=>{DECK_SORT=dss.value;renderDeckContents();};
@@ -872,7 +886,7 @@ function renderDeckContents(){const box=document.getElementById("deckContents");
   box.querySelectorAll(".deck-word").forEach(w=>w.onclick=()=>{QUERY=w.dataset.q;const qel=document.getElementById("q");if(qel)qel.value=QUERY;document.querySelector('.tab[data-page="library"]').click();render();document.getElementById("list").scrollIntoView({behavior:"smooth"});});
   const rf=document.getElementById("reviewFlagged");if(rf)rf.onclick=()=>startFlaggedReview();
   const cf=document.getElementById("clearFlagged");if(cf)cf.onclick=()=>{if(lib){lib.flagged=[];}STATE.clips.forEach(c=>c.flagged=false);saveState();renderDeckContents();};
-  box.querySelectorAll("[data-unflag]").forEach(b=>b.onclick=()=>{const id=b.dataset.unflag;if(lib&&lib.flagged)lib.flagged=lib.flagged.filter(x=>x!==id);const c=byId.get(id);if(c)c.flagged=false;saveState();renderDeckContents();});
+  box.querySelectorAll("[data-unflag]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const id=b.dataset.unflag;if(lib&&lib.flagged)lib.flagged=lib.flagged.filter(x=>x!==id);const c=byId.get(id);if(c)c.flagged=false;saveState();renderDeckContents();});
 }
 function startFlaggedReview(){const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);const flagged=(lib&&lib.flagged)||[];
   const byFp=new Map(STATE.clips.filter(c=>c.type!=="note").map(c=>[cardId(c),c]));
@@ -938,7 +952,9 @@ function clozeFront(c){
   // Vocab: show the word, define on the back. Topics: show the full text, reveal source context on the back.
   if(c.cat==="vocab"&&isVocabWord(c))return {front:vocabTermOf(c)||c.text,hint:"",answer:c.text,kind:"vocab"};
   const terms=termsForClip(c);
-  return {front:stripTrailingPunct(c.text),hint:"",answer:stripTrailingPunct(terms[0]||""),kind:"quote"};
+  // keep only the head term — drop trailing "—were" fragments after an em/en dash so the lookup is clean (e.g. "Iturbidism")
+  const term=stripTrailingPunct((terms[0]||"").split(/\s*[—–]\s*/)[0]);
+  return {front:stripTrailingPunct(c.text),hint:"",answer:term,kind:"quote"};
 }
 async function drawReviewCard(){
   const stage=document.getElementById("reviewStage");
@@ -951,7 +967,7 @@ async function drawReviewCard(){
   const c=RV.cards[RV.i];const cz=clozeFront(c);const n=RV.cards.length;
   const progress=`${RV.i+1} / ${n}`;
   const catCls=c.cat==="vocab"?"c-vocab":"c-topic";const frontCls=c.cat==="vocab"?"is-vocab":"is-topicc";
-  stage.innerHTML=`<div class="rv-topbar"><span class="rv-progress">${progress}</span><div class="rv-topbtns"><button class="btn ghost sm" id="rvPrev" title="Previous card"${RV.i===0?" disabled":""}>← Back</button><button class="btn ghost sm" id="rvSkip" title="Skip — move on without recording">Skip</button><button class="btn ghost sm" id="rvFlag" title="Flag a problem with this card">⚑ Flag</button><button class="btn ghost sm" id="rvSaveExit">Save &amp; exit</button></div></div>
+  stage.innerHTML=`<div class="rv-topbar"><span class="rv-progress">${progress}</span><div class="rv-topbtns"><button class="btn ghost sm" id="rvPrev" title="${RV.i===0?"Back to the question":"Previous card"}">← Back</button><button class="btn ghost sm" id="rvSkip" title="Skip — move on without recording">Skip</button><button class="btn ghost sm" id="rvFlag" title="Flag a problem with this card">⚑ Flag</button><button class="btn ghost sm" id="rvSaveExit">Save &amp; exit</button></div></div>
     <div class="rv-card">
       <div class="rv-cat lab ${catCls}">${CAT_LABELS[c.cat]||"untagged"}</div>
       <div class="rv-front ${frontCls}${cz.kind==="quote"?" is-quote":""}">${escHtml(cz.front)} ${cz.hint?`<span class="rv-hintlabel">${cz.hint}</span>`:""}</div>
@@ -971,7 +987,17 @@ async function drawReviewCard(){
   document.getElementById("rvFlag").onclick=()=>flagReview(c);
   document.getElementById("rvSaveExit").onclick=()=>{saveReviewSession();resetReviewSetup();toast("Session saved — resume any time.");};
 }
-function goBackReview(){if(!RV.active||RV.i<=0)return;RV.i--;RV.flipped=false;drawReviewCard();}
+function goBackReview(){if(!RV.active)return;
+  // if the answer is showing, "Back" first returns to the question (un-flip)
+  if(RV.flipped){RV.flipped=false;drawReviewCard();return;}
+  if(RV.i<=0)return;RV.i--;
+  // step back over the card we just graded and undo its grade so re-grading stays consistent
+  const c=RV.cards[RV.i];
+  if(c&&c.review&&c.review.grades.length){const g=c.review.grades.pop();c.review.count=Math.max(0,c.review.count-1);
+    c.review.last=c.review.grades.length?c.review.grades[c.review.grades.length-1]:null;
+    if(RV.session&&RV.session.grades[g]!=null){RV.session.grades[g]=Math.max(0,RV.session.grades[g]-1);RV.session.seen=Math.max(0,RV.session.seen-1);}
+    const ai=RV.again.indexOf(c);if(ai>=0)RV.again.splice(ai,1);}
+  RV.flipped=false;saveState();drawReviewCard();}
 function jumpToClipInLibrary(c){
   endReview();
   QUERY="";const qel=document.getElementById("q");if(qel)qel.value="";
@@ -998,8 +1024,8 @@ async function flipReviewCard(){
       (w.etymology?`<div class="t-field"><span class="fl">Etymology</span>${escHtml(w.etymology)}</div>`:"");
     if(!w.definition&&!w.etymology&&!w.example)html=`<div class="t-load">No dictionary entry found for this word.</div>`;
   }else{const term=cz.answer||clipKeyTerm(c);const wk=await fetchWiki(term);
-    html=(cz.answer?`<div class="rv-answer is-topicc">${escHtml(cz.answer)}</div>`:"")+
-      (wk?`<div class="t-field"><span class="fl">${escHtml(wk.title)}</span>${escHtml(wk.extract)}</div>`:`<div class="t-load">No Wikipedia summary.</div>`);
+    // don't restate the highlight — the Wikipedia title already names the topic
+    html=(wk?`<div class="t-field"><span class="fl">${escHtml(wk.title)}</span>${escHtml(wk.extract)}</div>`:`<div class="t-load">No Wikipedia summary.</div>`);
   }
   if(back)back.innerHTML=html;
   const ctr=document.getElementById("rvControls");
@@ -1135,7 +1161,8 @@ function clipFp(c){const t=cleanTitle(c.title||"").toLowerCase();const a=(c.auth
 function dedupClips(clips){const seen=new Map();const out=[];
   const norm=s=>(s||"").toLowerCase().replace(/\s+/g," ").trim();
   const bare=s=>norm(s).replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim(); // ignore punctuation/case
-  for(const c of clips){const arr=seen.get(c.fp);
+  for(const c of clips){if(!c.fp)c.fp=clipFp(c); // restored/older clips may lack a fingerprint
+    const arr=seen.get(c.fp);
     if(arr){
       // same identity (page/loc). Treat as duplicate if texts overlap or match ignoring punctuation.
       const ct=norm(c.text),cb=bare(c.text);let merged=false;
@@ -1150,7 +1177,7 @@ function dedupClips(clips){const seen=new Map();const out=[];
   const byBare=new Map();const final=[];
   for(const c of out){const cb=bare(c.text);
     if(!cb){final.push(c);continue;}
-    const key=[c.type||"highlight",cleanTitle(c.title||"").toLowerCase(),(c.author||"").toLowerCase(),cb].join("|");
+    const key=[c.type||"highlight",bare(cleanTitle(c.title||"")),bare(c.author||""),cb].join("|");
     const prev=byBare.get(key);
     if(prev){if((c.text||"").length>(prev.text||"").length)prev.text=c.text;continue;}
     byBare.set(key,c);final.push(c);}
@@ -1234,13 +1261,14 @@ function dedupActiveLibrary(){
   const before=STATE.clips.length;
   STATE.clips=dedupClips(STATE.clips);
   const removed=before-STATE.clips.length;
-  saveState();render();renderDropPanel();
+  syncActiveLib();saveState();render();renderDropPanel();
   toast(removed?`Removed ${removed} duplicate${removed===1?"":"s"}.`:"No duplicates found.");}
 function exportLibraryJson(){syncActiveLib();const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);if(!lib)return;
   const payload={marginalia:true,v:2,exported:Date.now(),library:{name:lib.name,clips:lib.clips,decks:lib.decks,importLog:lib.importLog,reviewLog:lib.reviewLog}};
   download(`${slug(lib.name)||"library"}-backup.json`,JSON.stringify(payload,null,2),"application/json");}
 function importLibraryJson(text){try{const d=JSON.parse(text);
     const libsrc=d.library||d;const clips=libsrc.clips;if(!Array.isArray(clips)||!clips.length){toast("That JSON has no highlights.");return;}
+    clips.forEach(c=>{if(!c.fp)c.fp=clipFp(c);if(!c.cat)c.cat=autoCategorize(c);}); // older backups may lack fp/cat
     syncActiveLib();
     const lib={id:newLibId(),name:(libsrc.name||"Imported library")+"",clips,decks:libsrc.decks||[],activeDeck:(libsrc.decks&&libsrc.decks[0]&&libsrc.decks[0].id)||null,
       catRules:[],reviewLog:libsrc.reviewLog||[],importLog:libsrc.importLog||[],isSample:false};
@@ -1256,19 +1284,17 @@ const drop=document.getElementById("drop");
 const _startOver=document.getElementById("startOver");
 /* ---------- Illuminated repeating vine divider (full width) ---------- */
 function renderMastDivider(){const el=document.getElementById("mastDivider");if(!el)return;
-  // One tile = a full period of two interwoven strands (gold over lapis), tiled horizontally.
-  const W=104,H=26,c=13,a=7;
-  const gold=`M0 ${c} C ${W*0.125} ${c-a}, ${W*0.375} ${c-a}, ${W/2} ${c} C ${W*0.625} ${c+a}, ${W*0.875} ${c+a}, ${W} ${c}`;
-  const lapis=`M0 ${c} C ${W*0.125} ${c+a}, ${W*0.375} ${c+a}, ${W/2} ${c} C ${W*0.625} ${c-a}, ${W*0.875} ${c-a}, ${W} ${c}`;
-  // a spine-style glyph at the crossing point, instead of a plain dot
-  const SYMS=["❧","✦","❦","✥","❀"],sym=SYMS[Math.floor(Math.random()*SYMS.length)];
+  // Solid-brass quatrefoil chain with a lapis centre stud, linked by a connecting brass line.
+  const W=72,H=26,c=13;
   const tile=`
-    <path d="${lapis}" fill="none" stroke="var(--lapis)" stroke-width="1.5" stroke-linecap="round" opacity="0.82"/>
-    <path d="${gold}" fill="none" stroke="var(--gold)" stroke-width="1.7" stroke-linecap="round"/>
-    <text x="${W/2}" y="${c}" text-anchor="middle" dominant-baseline="central" font-size="10" fill="var(--gold)">${sym}</text>`;
+    <line x1="0" y1="${c}" x2="${W}" y2="${c}" stroke="url(#brass)" stroke-width="1.6" opacity="0.75"/>
+    <g transform="translate(${W/2} ${c})" fill="url(#brassR)" stroke="#6a4e18" stroke-width="0.5">
+      <circle cx="0" cy="-5.5" r="4.4"/><circle cx="0" cy="5.5" r="4.4"/><circle cx="-5.5" cy="0" r="4.4"/><circle cx="5.5" cy="0" r="4.4"/>
+    </g>
+    <circle cx="${W/2}" cy="${c}" r="2.3" fill="var(--lapis)" stroke="url(#brass)" stroke-width="1"/>`;
   el.innerHTML=`<svg width="100%" height="${H}" preserveAspectRatio="xMinYMid meet" aria-hidden="true">
-    <defs><pattern id="plaitTile" width="${W}" height="${H}" patternUnits="userSpaceOnUse">${tile}</pattern></defs>
-    <rect x="0" y="0" width="100%" height="${H}" fill="url(#plaitTile)"/>
+    <defs><pattern id="quadTile" width="${W}" height="${H}" patternUnits="userSpaceOnUse">${tile}</pattern></defs>
+    <rect x="0" y="0" width="100%" height="${H}" fill="url(#quadTile)"/>
   </svg>`;}
 /* ---------- Library switcher (masthead dropdown overlay) ---------- */
 function updateLibSwitch(){const name=document.getElementById("libSwitchName");const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);

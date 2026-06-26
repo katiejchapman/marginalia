@@ -8,22 +8,47 @@ function annotateTerms(text){
     words.push({raw:tk,lead,core,trail,space,internalDash,cap:isCapCore(core),init:isInitial(core),allcaps:isAllCaps(core),
       connector:CONNECTORS.test(core),common:COMMON_CAP.test(core.replace(/\./,"")),attachNoun:ATTACH_NOUN.test(core),
       breaksAfter:/[,;:)]/.test(trail)||/[—–]$/.test(trail)||internalDash,breaksBefore:/[(]/.test(lead),endsSentence:/[.!?]$/.test(trail)});}
-  let prevEnded=true;for(const w of words){w.sentStart=prevEnded;prevEnded=w.endsSentence&&!w.init;}
+  let prevEnded=true;for(const w of words){w.sentStart=prevEnded;prevEnded=w.endsSentence&&!w.init&&!w.common;}
   const shortClip=words.length<=3;
+  const isArticleCore=c=>/^(the|a|an)$/i.test(c);
+  // proper-noun evidence: cores that appear capitalised away from a sentence start
+  const midCap=new Set();
+  for(const w of words){if((w.cap||w.allcaps)&&!w.sentStart&&!w.common&&!w.connector)midCap.add(w.core.replace(/['’]s$/,"").toLowerCase());}
   let out="",i=0;
-  while(i<words.length){const w=words[i];const eligible=(w.cap||w.init)&&!w.common;
+  while(i<words.length){const w=words[i];
+    const startArticle=w.cap&&isArticleCore(w.core)&&!w.endsSentence;
+    const eligible=((w.cap||w.init)&&!w.common)||startArticle;
     if(!eligible){out+=w.raw+w.space;i++;continue;}
     let j=i,run=[];
     while(j<words.length){const x=words[j];
       if(x.breaksBefore&&run.length)break;
-      if((x.cap||x.init)&&!x.common){run.push(x);if(x.breaksAfter){j++;break;}j++;continue;}
-      if(x.connector&&j+1<words.length&&!x.breaksAfter){const nx=words[j+1];if((nx.cap||nx.init)&&!nx.common&&!nx.breaksBefore){run.push(x);j++;continue;}}
+      if(((x.cap||x.init)&&!x.common)||(j===i&&startArticle)){run.push(x);if(x.breaksAfter){j++;break;}j++;continue;}
+      // bridge over one or more consecutive connectors ("in the") to the next capitalised name
+      if(x.connector&&!x.breaksAfter&&run.length){
+        let k=j;while(k<words.length&&words[k].connector&&!words[k].breaksAfter&&!(k>j&&words[k].breaksBefore))k++;
+        const nx=words[k];
+        if(nx&&(nx.cap||nx.init)&&!nx.common&&!nx.breaksBefore){for(let m=j;m<k;m++)run.push(words[m]);j=k;continue;}
+        break;}
       if(shortClip&&x.attachNoun&&run.length){run.push(x);j++;break;}
       break;}
     while(run.length&&run[run.length-1].connector){run.pop();}
+    // a leading article ("The"/"A") only stays for a multi-word Title ("The Human Factor"); else emit it plainly
+    if(run.length&&isArticleCore(run[0].core)){
+      const realCaps=run.filter(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init&&!isArticleCore(r.core)).length;
+      if(realCaps<2){out+=run[0].raw+run[0].space;i++;continue;}
+    }
     if(!run.length){out+=w.raw+w.space;i++;continue;}
-    const realJ=i+run.length;const hasRealName=run.some(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init);
-    const single=run.length===1;const ambiguous=single&&run[0].sentStart&&(SENTENCE_LEAD_STOP.test(run[0].core)||run[0].connector)&&!run[0].allcaps;
+    const realJ=i+run.length;
+    const hasRealName=run.some(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init&&!isArticleCore(r.core));
+    const w0=run.find(r=>!isArticleCore(r.core))||run[0];
+    const nameWords=run.filter(r=>!r.connector&&!isArticleCore(r.core));
+    const single=nameWords.length===1;
+    const possessive=/['’]s$/.test(w0.core);
+    const recurs=midCap.has(w0.core.replace(/['’]s$/,"").toLowerCase());
+    // a lone capitalised word is ambiguous if it merely opens a sentence: skip known lead-words always,
+    // and skip any non-recurring single in a longer passage (real proper nouns usually recur or sit mid-sentence)
+    const ambiguous=single&&w0.sentStart&&!w0.allcaps&&!w0.init&&!possessive&&
+      ((SENTENCE_LEAD_STOP.test(w0.core)||w0.connector)||(!recurs&&words.length>1));
     if(hasRealName&&!ambiguous){const lead=run[0].lead,trail=run[run.length-1].trail;
       let display=run.map((r,k)=>{let s=r.raw;if(k===0)s=s.slice(lead.length);if(k===run.length-1)s=s.slice(0,s.length-trail.length);return s;}).join(" ");
       const term=lookupForm(display);const spaceAfter=run[run.length-1].space;
