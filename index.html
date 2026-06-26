@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>marginalia — kindle notes organizer</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='14'%20fill='%232a221d'/%3E%3Cg%20transform='translate(50%2060)%20scale(1.34)%20translate(-50%20-60)'%3E%3Cpath%20d='M26%2068%20Q24%2055%2039%2053%20L61%2053%20Q76%2055%2074%2068%20Q71%2077%2050%2078%20Q29%2077%2026%2068Z'%20fill='%23c9a84a'/%3E%3Cellipse%20cx='50'%20cy='83'%20rx='15'%20ry='3.5'%20fill='%238a6d28'/%3E%3Crect%20x='45'%20y='43'%20width='10'%20height='12'%20rx='2'%20fill='%23c9a84a'/%3E%3Cpath%20d='M50%2019%20C59%2032%2057%2043%2050%2046%20C43%2043%2041%2032%2050%2019Z'%20fill='%23f4e6c2'/%3E%3Cpath%20d='M50%2028%20C54%2036%2053%2042%2050%2044%20C47%2042%2046%2036%2050%2028Z'%20fill='%23c9a84a'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='14'%20fill='%232a221d'/%3E%3Cellipse%20cx='50'%20cy='30'%20rx='16'%20ry='24'%20fill='%23ffcc4a'%20opacity='.16'/%3E%3Cpath%20d='M20%2069%20Q17.5%2052.5%2036%2050%20L64%2050%20Q82.5%2052.5%2080%2069%20Q76%2080%2050%2081%20Q24%2080%2020%2069Z'%20fill='%23c9a84a'/%3E%3Cellipse%20cx='50'%20cy='87.5'%20rx='18.75'%20ry='4.4'%20fill='%238a6d28'/%3E%3Crect%20x='43.75'%20y='37.5'%20width='12.5'%20height='15'%20rx='2'%20fill='%23c9a84a'/%3E%3Cpath%20d='M50%2052%20Q34%2034%2050%206%20Q66%2034%2050%2052Z'%20fill='%23ffcc4a'/%3E%3Cpath%20d='M50%2049%20Q41%2034%2050%2016%20Q59%2034%2050%2049Z'%20fill='%23ff8a2a'/%3E%3Cellipse%20cx='50'%20cy='38'%20rx='4.2'%20ry='8.5'%20fill='%23fff3c0'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=UnifrakturMaguntia&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -84,14 +84,17 @@
       </div>
       <div class="sub">your Kindle highlights — shelved, illuminated, and study-ready.</div>
       <div class="tabs">
+        <div class="lib-switch" id="libSwitch">
+          <button class="manage-btn" id="manageBtn" title="Switch library · add, import, restore &amp; history">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M4 5h5v15H4z"/><path d="M9 5h5v15H9z"/><path d="M14 6.2l4.4.9-2.4 14-4.3-.9"/></svg>
+            <span>Libraries</span> <span class="caret">▾</span>
+          </button>
+          <div class="lib-menu" id="libMenu"></div>
+        </div>
         <button class="tab library-tab" data-page="library" data-on="1">Library</button>
         <button class="tab timeline-tab" data-page="timeline" data-on="0">Timeline</button>
         <button class="tab" data-page="connections" data-on="0">Explore data</button>
         <button class="tab" data-page="review" data-on="0">Review</button>
-        <div class="lib-switch" id="libSwitch">
-          <button class="lib-switch-btn" id="libSwitchBtn" title="Switch or manage libraries — import, restore, and import history live here"><span class="lib-switch-tag">Libraries</span><span id="libSwitchName">Library</span> <span class="caret">▾</span></button>
-          <div class="lib-menu" id="libMenu"></div>
-        </div>
       </div>
     </div>
     <div class="topright">
@@ -106,10 +109,16 @@
       <div class="count"><b id="statClips">0</b>highlights · <span id="statBooks">0</span> books</div>
       <div class="visitor-info" id="visitorInfo"></div>
       <!-- Surprise me (compact, upper right) -->
-      <div class="surprise hidden" id="surprise">
-        <div class="sp-row"><span class="sp-lab">random highlight</span><button class="sp-again" id="spAgain" title="Show another random highlight">↻</button></div>
-        <div class="sp-text" id="spText">—</div>
-        <div class="sp-src" id="spSrc"></div>
+      <div class="surprise hidden" id="surprise" title="Jump to this highlight in the library">
+        <div class="sp-holes" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="sp-rule" aria-hidden="true"></div>
+        <div class="sp-inner">
+          <div class="sp-top"><span class="sp-loc" id="spLoc"></span></div>
+          <div class="sp-text" id="spText">—</div>
+          <div class="sp-title" id="spTitle"></div>
+          <div class="sp-author" id="spAuthor"></div>
+        </div>
+        <button class="sp-again" id="spAgain" title="Show another random highlight" aria-label="Show another">↻</button>
       </div>
     </div>
   </header>
@@ -122,9 +131,6 @@
       <p>"My Clippings.txt" from your Kindle, or the HTML / CSV notebook export from the app</p>
       <div class="row" style="justify-content:center;margin-top:14px">
         <button class="btn" id="pickBtn">Choose file</button>
-        <button class="btn ghost hidden" id="backToLib">← Back to library</button>
-        <button class="btn ghost" id="sampleBtn">Load a sample</button>
-        <button class="btn ghost" id="restoreBtn">Restore from backup</button>
         <input type="file" id="file" accept=".txt,.html,.htm,.csv" class="hidden">
         <input type="file" id="fileJson" accept=".json" class="hidden">
       </div>
@@ -142,15 +148,16 @@
       <div class="toolbar">
         <div class="search"><input id="q" placeholder="Search highlights, books, notes…"><button id="clearSearch" class="search-clear" type="button" aria-label="Clear search" style="display:none">✕</button></div>
         <div class="cats" id="catFilters">
-          <button class="chip c-vocab" data-cat="vocab" data-on="1"><span class="dot" style="background:var(--cat-vocab)"></span>vocabulary</button>
-          <button class="chip c-quotes" data-cat="quotes" data-on="1"><span class="dot" style="background:var(--cat-quotes)"></span>quote</button>
-          <button class="chip c-topic" data-cat="topic" data-on="1"><span class="dot" style="background:var(--cat-topic)"></span>topic of interest</button>
-          <button class="chip c-none" data-cat="none" data-on="1"><span class="dot" style="background:var(--cat-none)"></span>untagged</button>
+          <button class="chip c-vocab" data-cat="vocab" data-on="1" title="vocab"><span class="dot" style="background:var(--cat-vocab)"></span>vocab</button>
+          <button class="chip c-quotes" data-cat="quotes" data-on="1" title="quote"><span class="dot" style="background:var(--cat-quotes)"></span>quote</button>
+          <button class="chip c-topic" data-cat="topic" data-on="1" title="topic of interest"><span class="dot" style="background:var(--cat-topic)"></span>topic</button>
+          <button class="chip c-none" data-cat="none" data-on="1" title="untagged"><span class="dot" style="background:var(--cat-none)"></span>untagged</button>
         </div>
         <div class="toolbar-actions">
           <select class="filter" id="sortSel">
             <option value="page">by page</option>
             <option value="date">by date</option>
+            <option value="author">by author</option>
             <option value="added">as added</option>
             <option value="len">longest</option>
             <option value="tag">by tag</option>
@@ -183,8 +190,8 @@
       </div>
       <div class="tl-sliderlabels"><span id="tlLabL"></span><span class="tl-hint" id="tlSliderState"></span><span id="tlLabR"></span></div>
       <div class="tl-legend">
-        <span><i style="background:var(--cat-vocab)"></i>vocabulary</span>
-        <span><i style="background:var(--cat-quotes)"></i>quotes</span>
+        <span><i style="background:var(--cat-vocab)"></i>vocab</span>
+        <span><i style="background:var(--cat-quotes)"></i>quote</span>
         <span><i style="background:var(--cat-topic)"></i>topic of interest</span>
         <span><i style="background:var(--cat-none)"></i>untagged</span>
       </div>
@@ -193,7 +200,10 @@
     </div>
     <div class="tl-insights">
       <div class="tl-recap" id="tlRecap"></div>
-      <div class="tl-evolution" id="tlEvolution"></div>
+      <div class="tl-right">
+        <div class="tl-evolution" id="tlEvolution"></div>
+        <div class="tl-laurel-box" id="tlLaurel"></div>
+      </div>
     </div>
   </div>
 
@@ -202,7 +212,8 @@
     <div class="xp-nav">
       <button class="xp-tab" data-xp="words" data-on="1">Theme map</button>
       <button class="xp-tab" data-xp="connections" data-on="0">Connections</button>
-      <button class="xp-tab" data-xp="books" data-on="0">By book</button>
+      <button class="xp-tab" data-xp="books" data-on="0">By book / author</button>
+      <button class="xp-tab" data-xp="pace" data-on="0">Reading pace</button>
     </div>
 
     <div class="xp-panel" id="xpConnections">
@@ -222,6 +233,10 @@
     <div class="xp-panel" id="xpBooks" style="display:none">
       <div id="bookStats"></div>
     </div>
+
+    <div class="xp-panel" id="xpPace" style="display:none">
+      <div id="paceStats"></div>
+    </div>
   </div>
 
   <!-- REVIEW -->
@@ -236,7 +251,7 @@
       <p class="anki-intro">Flip through your highlights like flashcards. Vocabulary cards show the word; flip to reveal its definition. Topic cards flip to their source context.</p>
       <div class="rv-setup-row">
         <div class="cats" id="reviewCats">
-          <button class="chip c-vocab" data-cat="vocab" data-on="1"><span class="dot" style="background:var(--cat-vocab)"></span>vocabulary</button>
+          <button class="chip c-vocab" data-cat="vocab" data-on="1"><span class="dot" style="background:var(--cat-vocab)"></span>vocab</button>
           <button class="chip c-topic" data-cat="topic" data-on="1"><span class="dot" style="background:var(--cat-topic)"></span>topic of interest</button>
         </div>
         <button class="btn" id="reviewStartBtn">Start review</button>

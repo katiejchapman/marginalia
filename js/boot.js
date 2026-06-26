@@ -19,6 +19,8 @@ document.getElementById("ctrlGrid").addEventListener("click",e=>{const b=e.targe
 root.setAttribute("data-mode","dark");
 document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.closest(".tab");if(!b)return;
   PAGE=b.dataset.page;document.querySelectorAll(".tab").forEach(t=>t.dataset.on=t===b?1:0);
+  // clicking Library while in the import/restore/history view returns to the library
+  if(PAGE==="library"){const d=document.getElementById("drop");if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();}
   document.getElementById("pageLibrary").style.display=PAGE==="library"?"":"none";
   document.getElementById("pageTimeline").style.display=PAGE==="timeline"?"block":"none";
   document.getElementById("pageConnections").style.display=PAGE==="connections"?"block":"none";
@@ -69,6 +71,7 @@ document.addEventListener("keydown",e=>{
   if(e.target.isContentEditable||/^(INPUT|TEXTAREA)$/.test(e.target.tagName))return;
   if(e.key===" "){e.preventDefault();if(!RV.flipped)flipReviewCard();else gradeReview(3);}
   else if(["1","2","3","4"].includes(e.key)){if(RV.flipped){e.preventDefault();gradeReview(+e.key);}}
+  else if((e.metaKey||e.ctrlKey)&&(e.key==="z"||e.key==="Z")){e.preventDefault();goBackReview();}
   else if(e.key==="Escape"){finishReview();}
 });
 // Escape backs out of the import / restore / history view without doing anything
@@ -77,9 +80,8 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();});
 
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
-document.getElementById("backToLib").onclick=()=>{if(typeof closeImport==="function")closeImport();};
+document.getElementById("manageBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
 fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ingest(r.result,f.name);fileInput.value="";};r.readAsText(f);};
-document.getElementById("restoreBtn").onclick=()=>fileJson.click();
 fileJson.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{importLibraryJson(r.result);fileJson.value="";};r.readAsText(f);};
 ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));
@@ -126,16 +128,24 @@ updateVisitorInfo();
 /* ---------- Restore previous session ---------- */
 (function restoreSession(){
   if(loadState()){
+    // the sample is always available as a selectable library — recreate it if missing, without leaving the user's library
+    if(!LIBRARIES.some(l=>l.isSample)&&typeof loadSample==="function"){const prev=ACTIVE_LIB;loadSample();if(prev&&LIBRARIES.some(l=>l.id===prev))switchLibrary(prev);}
     document.getElementById("drop").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     showSurprise();render();renderDropPanel();updateLibSwitch();
     const n=STATE.clips.length;
     setTimeout(()=>toast(`Welcome back — restored ${n} highlight${n===1?"":"s"}.`),400);
-  }else{renderDropPanel();updateLibSwitch();}
+  }else{
+    // first visit — preload the sample library so there's something to explore
+    if(typeof loadSample==="function")loadSample();
+    document.getElementById("drop").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    showSurprise();render();renderDropPanel();updateLibSwitch();
+  }
 })();
-document.getElementById("libSwitchBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
+document.getElementById("libSwitchBtn")?.addEventListener("click",e=>{e.stopPropagation();});
 document.addEventListener("click",e=>{if(!e.target.closest("#libSwitch"))closeLibMenu();});
-document.getElementById("sampleBtn").onclick=()=>{if(IS_SAMPLE){backToMyLibrary();return;}const sample=`Meditations (Marcus Aurelius)
+function loadSample(){const sample=`Meditations (Marcus Aurelius)
 - Your Highlight on page 17 | location 305 | Added on Tuesday, 27 August 2024 09:52:34
 
 The happiness of your life depends upon the quality of your thoughts.
@@ -574,13 +584,28 @@ The Odyssey (Homer)
 - Your Highlight on page 873 | location 15662 | Added on Saturday, 08 February 2025 16:49:02
 
 xenia
+==========
+Meditations (Marcus Aurelius)
+- Your Note on page 17 | location 305 | Added on Tuesday, 27 August 2024 10:01:12
+
+This reframed how I start my mornings — guard the quality of the first thought.
+==========
+Meditations (Marcus Aurelius)
+- Your Note on page 30 | location 547 | Added on Tuesday, 13 August 2024 08:40:10
+
+Cf. cognitive behavioral therapy: thoughts dye the mood.
+==========
+Meditations (Marcus Aurelius)
+- Your Note on page 50 | location 903 | Added on Sunday, 08 September 2024 12:09:55
+
+The whole book really comes down to this one line.
 ==========`;
 // Load the sample into its own dedicated "Sample" library (reuse if it already exists)
 syncActiveLib();
 const existingSample=LIBRARIES.find(l=>l.isSample);
-if(existingSample){switchLibrary(existingSample.id);updateSampleBtn();return;}
+if(existingSample){switchLibrary(existingSample.id);return;}
 createLibraryQuiet("Sample");
 ingest(sample,"Marginalia sample.txt",true);
 const SAMPLE_CATS=["quotes", "quotes", "vocab", "quotes", "vocab", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "vocab", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "topic", "vocab", "quotes", "vocab", "quotes", "quotes", "topic", "quotes", "vocab", "quotes", "quotes", "topic", "vocab", "quotes", "quotes", "quotes", "topic", "topic", "vocab", "quotes", "quotes", "topic", "quotes", "quotes", "vocab", "quotes", "topic", "quotes", "vocab", "quotes", "quotes", "quotes", "quotes", "topic", "vocab", "quotes", "topic", "quotes", "quotes", "quotes", "quotes", "topic", "topic", "vocab", "quotes", "topic", "vocab", "quotes", "topic", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "quotes", "vocab", "quotes", "topic", "quotes", "topic", "vocab"];
 STATE.clips.filter(c=>c.type!=="note").forEach((c,i)=>{if(SAMPLE_CATS[i]){c.cat=SAMPLE_CATS[i];c.catLocked=true;}});
-saveState();render();renderDropPanel();updateSampleBtn();};
+saveState();render();renderDropPanel();}

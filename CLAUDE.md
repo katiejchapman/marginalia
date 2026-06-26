@@ -81,6 +81,30 @@ fallback) for definitions/etymology, Tatoeba for example sentences, plus
 countapi/ipapi for a visitor counter. These power vocab card backs and term
 tooltips — code must tolerate them being slow or unreachable.
 
+## Tags vs. labels (read before touching categories)
+
+There are **two separate things** and they are easy to confuse:
+
+- **Category keys** (the data): `vocab`, `quotes`, `topic`, `none`. These appear as
+  `c.cat`, `data-cat="…"`, `deck.tags.quotes`, `CAT_FILTER.quotes`, etc.
+  **Never rename a key.** Renaming `quotes`→`quote` breaks filters, decks,
+  persistence, and saved libraries.
+- **Display labels** (what the user sees): held in `CAT_LABELS` and a few inline
+  strings. The agreed labels are: vocab → **"vocab"**, quotes → **"quote"**
+  (singular), topic → **"topic of interest"**. The quotes label is the singular
+  **"quote"** everywhere (toolbar chip, timeline legend, by-book legend, catpick,
+  recap). Do not pluralize it to "quotes".
+
+When the user says "the quote tag should say X", they mean the **label**, not the
+key. Change `CAT_LABELS` / inline display strings only; leave `data-cat`,
+`c.cat==="quotes"`, `deck.tags`, etc. untouched.
+
+## UI preferences
+
+- **Toggles / segmented controls are rectangular** (small `border-radius`, ~3–4px),
+  not pill-shaped. This applies to group switches like the by-book/author toggle,
+  deck group-by, S/M/L size toggle, and any similar segmented control added later.
+
 ## Conventions
 
 - Do not rewrite the entire site unless explicitly asked.

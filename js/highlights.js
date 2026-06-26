@@ -159,7 +159,23 @@ async function fetchWiktionary(word){const key=(word||"").toLowerCase();if(key i
   const tat=await fetchTatoebaExample(word);
   if(tat){result.example=tat;result.exampleSource="Tatoeba";}
   else if(result.example){result.exampleSource="Dictionary";}
+  // Translation — only surfaces when the word is detected as a non-English language
+  const tr=await fetchTranslation(word);
+  if(tr){result.translation=tr.text;result.translationLang=tr.lang;}
   wiktCache[key]=result;return result;}
+const transCache={};
+function langName(code){try{return new Intl.DisplayNames(["en"],{type:"language"}).of(code)||code;}catch(e){return code;}}
+async function fetchTranslation(word){const key=(word||"").toLowerCase();if(!key||key in transCache)return transCache[key];
+  let out=null;
+  try{const u="https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q="+encodeURIComponent(word);
+    const r=await fetch(u);
+    if(r.ok){const j=await r.json();
+      const text=(j&&j[0]&&j[0].map(s=>s[0]).filter(Boolean).join(""))||"";
+      const lang=(j&&j[2])||"";
+      // skip English (and trivial no-ops) — translation is only for foreign words
+      if(text&&lang&&lang!=="en"&&text.toLowerCase()!==key)out={text,lang:langName(lang)};}
+  }catch(e){}
+  transCache[key]=out;return out;}
 const tatCache={};
 async function fetchTatoebaExample(word){const key=(word||"").toLowerCase();if(key in tatCache)return tatCache[key];
   let out="";
@@ -176,8 +192,9 @@ async function populateTip(termEl,vocabEl){
   if(vocabEl){const word=vocabEl.dataset.vocab;
     tip.innerHTML=`<div class="t-title">${escHtml(word)}</div><div class="t-load">Looking up…</div>`+pinCloseHtml();
     const w=await fetchWiktionary(word);if(tip.style.display==="none")return;
-    if(w.definition||w.example||w.etymology){
+    if(w.definition||w.example||w.etymology||w.translation){
       tip.innerHTML=`<div class="t-title">${escHtml(word)}${w.pos?` · <span style="font-style:italic;font-size:13px;color:var(--ink-soft)">${escHtml(w.pos)}</span>`:""}</div>`
+        +(w.translation?`<div class="t-field"><span class="fl">Translation${w.translationLang?" · from "+escHtml(w.translationLang):""}</span>${escHtml(w.translation)}</div>`:"")
         +(w.definition?`<div class="t-field"><span class="fl">Definition</span>${escHtml(w.definition)}</div>`:"")
         +(w.example?`<div class="t-field"><span class="fl">Example${w.exampleSource?" · "+w.exampleSource:""}</span><i>${escHtml(w.example)}</i></div>`:"")
         +(w.etymology?`<div class="t-field"><span class="fl">Etymology</span>${escHtml(w.etymology)}</div>`:"")
