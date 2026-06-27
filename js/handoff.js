@@ -16,7 +16,7 @@ const HANDOFF = {
   deadline: 0,
   busy: false,
   POLL_MS: 2000,
-  TTL_MS: 120000,                 // ~2 min, matches the KV TTL on the relay
+  TTL_MS: 600000,                 // ~10 min, matches the KV TTL on the relay (time to scan + correct text on the phone)
   QR_SRC: "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js",
   qrLoading: null,
 };

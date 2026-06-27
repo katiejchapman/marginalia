@@ -24,6 +24,8 @@
   var fNote = document.getElementById("fNote");
   var sendBtn = document.getElementById("sendBtn");
   var rescanBtn = document.getElementById("rescanBtn");
+  var coverBtn = document.getElementById("coverBtn");
+  var coverInput = document.getElementById("coverInput");
   var tokBox = document.getElementById("tokBox");
 
   var previewUrl = null;            // object URL for the on-screen preview
@@ -104,6 +106,59 @@
     }
   }
 
+  // ----- light text heuristics (all best-effort; the user can edit) -----
+  // A line that's nothing but 1–4 digits is almost always a page number.
+  function parsePage(text){
+    var lines = String(text || "").split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++){
+      var m = lines[i].trim().match(/^(\d{1,4})$/);
+      if (m) return m[1];
+    }
+    return "";
+  }
+  function stripPageLine(text, pg){
+    return String(text || "").split(/\r?\n/).filter(function(l){ return l.trim() !== pg; }).join("\n").trim();
+  }
+  // Parse a cover's OCR text into {title, author}. Covers vary wildly, so this is
+  // a rough guess: honor an explicit "by …", else take the longest line as the
+  // title and a short Title-Case line as the author.
+  function parseCover(text){
+    var lines = String(text || "").split(/\r?\n/).map(function(s){ return s.trim(); }).filter(Boolean);
+    var title = "", author = "";
+    for (var i = 0; i < lines.length; i++){
+      var m = lines[i].match(/^by\s+(.+)/i);
+      if (m){ author = m[1].trim(); lines.splice(i, 1); break; }
+    }
+    if (lines.length){
+      title = lines.slice().sort(function(a, b){ return b.length - a.length; })[0];
+      if (!author){
+        var cand = lines.filter(function(l){ return l !== title && /^[A-Z]/.test(l) && l.split(/\s+/).length <= 4; });
+        if (cand.length) author = cand[cand.length - 1];
+      }
+    }
+    return { title: title, author: author };
+  }
+
+  // Scan a book cover and fill title/author (editable). Doesn't touch the
+  // highlight text or the preview.
+  async function handleCover(blob){
+    if (!blob) return;
+    setStatus("Reading the cover…", "busy");
+    if (coverBtn) coverBtn.disabled = true;
+    try {
+      var t = await ocrImage(blob);
+      var pc = parseCover(t);
+      if (pc.title) fTitle.value = pc.title;
+      if (pc.author) fAuthor.value = pc.author;
+      setStatus((pc.title || pc.author) ? "Filled title/author from the cover — check them." : "Couldn’t read the cover — type it in.", (pc.title || pc.author) ? "" : "err");
+    } catch (e) {
+      setStatus(e && e.message === "ocr-unavailable" ? "OCR unavailable — type title/author in." : "Couldn’t read the cover — type title/author in.", "err");
+    } finally {
+      if (coverBtn) coverBtn.disabled = false;
+      try { coverInput.value = ""; } catch (e) {}
+    }
+  }
+
   // Run the capture pipeline on a File/Blob: preview, OCR, reveal the editable
   // form. Exposed for the headless test (which feeds a synthetic image instead
   // of a camera). Returns the recognized text.
@@ -118,6 +173,8 @@
     var text = "";
     try {
       text = await ocrImage(blob);
+      var pg = parsePage(text);                       // auto page number from a lone-digit line
+      if (pg) { fPage.value = pg; text = stripPageLine(text, pg); }
       fText.value = text;
       show(form);
       setStatus(text ? "Check the text below and fix any mistakes." : "No text found — type it in below.", text ? "" : "busy");
@@ -148,6 +205,11 @@
   });
   rescanBtn.addEventListener("click", function(){
     discardImage(); hide(form); setStatus(""); imgInput.click();
+  });
+  if (coverBtn) coverBtn.addEventListener("click", function(){ coverInput.click(); });
+  if (coverInput) coverInput.addEventListener("change", function(e){
+    var f = e.target.files && e.target.files[0];
+    if (f) handleCover(f);
   });
 
   sendBtn.addEventListener("click", async function(){
@@ -194,5 +256,5 @@
   });
 
   // Hook for the headless OCR→relay→ingest test (camera can't be driven headlessly).
-  window.SCAN = { handleImage: handleImage, ocrImage: ocrImage };
+  window.SCAN = { handleImage: handleImage, handleCover: handleCover, ocrImage: ocrImage, parseCover: parseCover, parsePage: parsePage };
 })();
