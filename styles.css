@@ -257,6 +257,7 @@
   .text.editing-text{cursor:text}
   .edit-meta{display:flex;gap:10px;margin:8px 0 2px;flex-wrap:wrap}
   .edit-meta label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft)}
+  .edit-meta .em-page-l{flex:0 0 84px;min-width:84px}
   .edit-meta input{font-family:inherit;font-size:14px;color:var(--ink);background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:4px;padding:6px 8px}
   .edit-meta input:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent)}
   .review-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--rule-strong);border-left:3px solid var(--accent);border-radius:6px;padding:11px 16px;margin:18px 0 4px;font-family:var(--head);font-size:15px;color:var(--ink)}
@@ -424,6 +425,9 @@
   td .dp-undo:hover{border-color:var(--accent-2);color:var(--accent-2)}
   .dp-actions{display:flex;gap:7px;flex-wrap:nowrap;align-items:center;margin-top:12px}
   .dp-actions .btn{white-space:nowrap;padding:7px 11px;font-size:13px}
+  /* quiet "last backed up" indicator — informational, never alarming */
+  .dp-backup{font-family:var(--mono);font-size:10px;letter-spacing:.02em;color:var(--ink-soft);opacity:.6;margin-top:8px}
+  .dp-backup.due{opacity:1}
   .conn-toggle{font-family:var(--head);font-size:14px;color:var(--ink-soft);display:flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap}
   .conn-group{border:1px solid var(--rule);background:var(--card);border-radius:8px;margin-bottom:12px;overflow:hidden}
   .conn-head{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--rule)}
@@ -898,7 +902,7 @@
   @keyframes handoffPulse{0%,100%{opacity:.3}50%{opacity:1}}
   /* Add-highlight modal (manual entry) — same fields as the phone /scan page */
   .add-modal{max-width:440px;text-align:left}
-  .add-form label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:10px 0 4px}
+  .add-form label{display:block;font-family:var(--mono);font-size:11px;text-transform:lowercase;letter-spacing:.02em;color:var(--ink-soft);margin:10px 0 4px}
   .add-form textarea,.add-form input,.add-form select{width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;color:var(--ink);background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:5px;padding:8px 9px}
   .add-form textarea{resize:vertical;line-height:1.45}
   .add-form textarea:focus,.add-form input:focus,.add-form select:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent)}

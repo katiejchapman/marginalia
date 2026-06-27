@@ -278,7 +278,9 @@ function submitManual(){
   const fail = m => { if (msg){ msg.textContent = m; msg.className = "add-msg err"; } };
   if (!text) return fail("Add some highlight text first.");
   const page = g("amPage"), note = g("amNote");
-  const loc = page || ("manual" + Date.now());     // shared loc so a note attaches
+  // unique loc so two highlights from the same page don't collide on the fp;
+  // the note shares this same loc so it still pairs to its highlight
+  const loc = "manual" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   const title = g("amTitle") || "Untitled", author = g("amAuthor");
   const tagEl = document.getElementById("amTag"), tag = tagEl ? tagEl.value : "";
   const highlight = { text, title, author, type: "highlight", page, loc, cat: tag, added: Date.now() };

@@ -236,19 +236,20 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
 function beginEdit(c,textEl,editBtn,div){
   if(div.classList.contains("editing"))return;
   div.classList.add("editing");
-  const original=c.text,origTitle=c.title||"",origAuthor=c.author||"";
+  const original=c.text,origTitle=c.title||"",origAuthor=c.author||"",origPage=c.page||"";
   textEl.textContent=c.text;             // strip term spans while editing
   textEl.setAttribute("contenteditable","true");
   textEl.classList.add("editing-text");
-  // also let the user fix the book title & author (handy for scanned highlights)
-  let tIn=null,aIn=null;
+  // also let the user fix the book title, author & page (handy for scanned highlights)
+  let tIn=null,aIn=null,pIn=null;
   if(c.type!=="note"){
     const meta=div.querySelector(".meta");
     const ed=document.createElement("div");ed.className="edit-meta";
     ed.innerHTML=`<label>Book<input class="em-title" type="text" value="${escAttr(c.title||"")}"></label>`
-                +`<label>Author<input class="em-author" type="text" value="${escAttr(c.author||"")}"></label>`;
+                +`<label>Author<input class="em-author" type="text" value="${escAttr(c.author||"")}"></label>`
+                +`<label class="em-page-l">Page<input class="em-page" type="text" inputmode="numeric" value="${escAttr(c.page||"")}"></label>`;
     if(meta)meta.parentNode.insertBefore(ed,meta);else div.querySelector(".body").appendChild(ed);
-    tIn=ed.querySelector(".em-title");aIn=ed.querySelector(".em-author");
+    tIn=ed.querySelector(".em-title");aIn=ed.querySelector(".em-author");pIn=ed.querySelector(".em-page");
   }
   textEl.focus();
   // place caret at end
@@ -263,14 +264,17 @@ function beginEdit(c,textEl,editBtn,div){
     textEl.removeEventListener("keydown",onKey);textEl.removeEventListener("blur",onBlur);
     if(tIn){tIn.removeEventListener("keydown",onKey);tIn.removeEventListener("blur",onBlur);}
     if(aIn){aIn.removeEventListener("keydown",onKey);aIn.removeEventListener("blur",onBlur);}
+    if(pIn){pIn.removeEventListener("keydown",onKey);pIn.removeEventListener("blur",onBlur);}
     if(commit){
       const nt=textEl.textContent.replace(/\s+/g," ").trim();
       const nTitle=tIn?tIn.value.replace(/\s+/g," ").trim():origTitle;
       const nAuthor=aIn?aIn.value.replace(/\s+/g," ").trim():origAuthor;
+      const nPage=pIn?pIn.value.trim():origPage;
       let dirty=false;
       if(nt&&nt!==original){c.text=nt;dirty=true;}
       if(nTitle!==origTitle){c.title=nTitle;dirty=true;}
       if(nAuthor!==origAuthor){c.author=nAuthor;dirty=true;}
+      if(nPage!==origPage){c.page=nPage;dirty=true;}
       if(dirty){c.edited=true;c.fp=clipFp(c);if(!c.catLocked)c.cat=autoCategorize(c);saveState();}
     }
     render();
@@ -285,6 +289,7 @@ function beginEdit(c,textEl,editBtn,div){
   textEl.addEventListener("keydown",onKey);textEl.addEventListener("blur",onBlur);
   if(tIn){tIn.addEventListener("keydown",onKey);tIn.addEventListener("blur",onBlur);}
   if(aIn){aIn.addEventListener("keydown",onKey);aIn.addEventListener("blur",onBlur);}
+  if(pIn){pIn.addEventListener("keydown",onKey);pIn.addEventListener("blur",onBlur);}
   editBtn.onclick=()=>finish(true);
 }
 /* ---------- Review an incoming re-import that differs from your edit ---------- */
@@ -414,7 +419,9 @@ function cleanTitle(raw){let t=(raw||"").trim();
   t=t.replace(/\s*[\(\[]?(19|20)\d{2}[\)\]]?\s*$/,"").trim();
   let prev;do{prev=t;t=t.replace(/\s*[\(\[]([^\)\]]*)[\)\]]\s*$/,(m,inner)=>PUB_KEYWORDS.test(inner)?"":m).trim();}while(t!==prev);
   t=t.replace(/:\s*(a\s+novel|a\s+memoir|stories|poems|a\s+true\s+story)\s*$/i,"");
-  t=t.replace(/\s+by\s+[A-Z][a-zA-Z.\-]+(\s+[A-Z][a-zA-Z.\-]+){0,3}\s*$/,"").trim();
+  // strip a trailing "by Author" only when it's a full (2–4 word) name, so real
+  // titles that contain "by" survive ("Bird by Bird", "Saved by the Bell")
+  t=t.replace(/\s+by\s+[A-Z][a-zA-Z.\-]+(\s+[A-Z][a-zA-Z.\-]+){1,3}\s*$/,"").trim();
   t=t.replace(/\s{2,}/g," ").replace(/[\s,;:.\-\u2013\u2014]+$/,"").trim();
   return t||raw;}
 function truncTitle(t,max){t=t||"";return t.length>max?t.slice(0,max-1).replace(/[\s,;:\u2013-]+$/,"")+"\u2026":t;}
@@ -432,9 +439,20 @@ function toastUndo(m,onUndo){const t=document.createElement("div");t.className="
   t.appendChild(s);t.appendChild(b);document.body.appendChild(t);
   const close=()=>t.remove();const timer=setTimeout(close,6000);
   b.onclick=()=>{clearTimeout(timer);close();onUndo();};}
-function deleteHighlight(c){const idx=STATE.clips.indexOf(c);if(idx<0)return;
-  const removed=STATE.clips.splice(idx,1)[0];saveState();render();
-  toastUndo("Highlight deleted.",()=>{STATE.clips.splice(Math.min(idx,STATE.clips.length),0,removed);saveState();render();});}
+function deleteHighlight(c){if(STATE.clips.indexOf(c)<0)return;
+  // also remove any note(s) attached to this highlight that no OTHER highlight shares
+  const lk=x=>((x.loc||x.page||"")+"").split(/[-–]/)[0].trim();
+  const bk=x=>cleanTitle(x.title)+"|"+(x.author||"");
+  const k=lk(c),b=bk(c);
+  const orphanNotes=(c.type!=="note"&&k)?STATE.clips.filter(n=>n!==c&&n.type==="note"&&lk(n)===k&&bk(n)===b
+      &&!STATE.clips.some(o=>o!==c&&o.type!=="note"&&lk(o)===k&&bk(o)===b)):[];
+  // snapshot original positions so undo can restore everything in place
+  const removed=[c,...orphanNotes].map(x=>({clip:x,idx:STATE.clips.indexOf(x)})).sort((a,b)=>a.idx-b.idx);
+  removed.forEach(r=>{const i=STATE.clips.indexOf(r.clip);if(i>=0)STATE.clips.splice(i,1);});
+  saveState();render();
+  const nN=orphanNotes.length;
+  toastUndo("Highlight deleted"+(nN?` and ${nN} note${nN===1?"":"s"}`:"")+".",()=>{
+    removed.forEach(r=>STATE.clips.splice(Math.min(r.idx,STATE.clips.length),0,r.clip));saveState();render();});}
 
 /* ---------- Timeline ---------- */
 function parseDate(c){if(!c.added)return null;const d=new Date(c.added);return isNaN(d)?null:d;}
@@ -922,6 +940,7 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
         <button class="btn ghost sm" data-act="restore">Restore from backup</button>
         ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn ghost sm" data-act="export">Export JSON backup</button><button class="btn ghost sm" data-act="dedup">Remove duplicates</button>`:""}
       </div>
+      ${activeLib&&activeLib.clips&&activeLib.clips.length?backupStatusHtml():""}
       ${batches&&batches.length?`
         <div class="dp-head" style="margin-top:18px">Imports in “${escHtml(activeLib.name)}”</div>
         <table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>New</th><th>Updated</th><th></th></tr></thead><tbody>
@@ -1487,7 +1506,22 @@ function dedupActiveLibrary(){
   toast(removed?`Removed ${removed} duplicate${removed===1?"":"s"}.`:"No duplicates found.");}
 function exportLibraryJson(){syncActiveLib();const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);if(!lib)return;
   const payload={marginalia:true,v:2,exported:Date.now(),library:{name:lib.name,clips:lib.clips,decks:lib.decks,importLog:lib.importLog,reviewLog:lib.reviewLog}};
-  download(`${slug(lib.name)||"library"}-backup.json`,JSON.stringify(payload,null,2),"application/json");}
+  download(`${slug(lib.name)||"library"}-backup.json`,JSON.stringify(payload,null,2),"application/json");
+  recordBackup();}
+/* ---------- "last backed up" indicator (surfaces existing state; no auto-backup) ---------- */
+const LAST_BACKUP_KEY="marginalia.lastBackup";
+function recordBackup(ts){try{localStorage.setItem(LAST_BACKUP_KEY,String(ts||Date.now()));}catch(e){}
+  const el=document.getElementById("dpBackup");if(el)el.outerHTML=backupStatusHtml();}
+function lastBackupTs(){try{const n=parseInt(localStorage.getItem(LAST_BACKUP_KEY)||"0",10);return n>0?n:0;}catch(e){return 0;}}
+function relTimeAgo(ts,now){now=now||Date.now();let s=Math.max(0,Math.floor((now-ts)/1000));
+  if(s<45)return"just now";let m=Math.floor(s/60);if(m<60)return m+" minute"+(m===1?"":"s")+" ago";
+  let h=Math.floor(m/60);if(h<24)return h+" hour"+(h===1?"":"s")+" ago";
+  let d=Math.floor(h/24);return d+" day"+(d===1?"":"s")+" ago";}
+function backupStatusHtml(now){const ts=lastBackupTs();now=now||Date.now();
+  if(!ts)return'<div class="dp-backup" id="dpBackup">never backed up</div>';
+  // gentle (non-alarming) emphasis if it's been >7 days and there's newer work
+  const stale=(now-ts)>7*864e5&&STATE.clips.some(c=>(c.added||0)>ts);
+  return'<div class="dp-backup'+(stale?" due":"")+'" id="dpBackup">last backed up: '+escHtml(relTimeAgo(ts,now))+'</div>';}
 function importLibraryJson(text){try{const d=JSON.parse(text);
     const libsrc=d.library||d;const clips=libsrc.clips;if(!Array.isArray(clips)||!clips.length){toast("That JSON has no highlights.");return;}
     clips.forEach(c=>{if(!c.fp)c.fp=clipFp(c);if(!c.cat)c.cat=autoCategorize(c);}); // older backups may lack fp/cat

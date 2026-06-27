@@ -302,8 +302,10 @@
 
     var page = fPage.value.trim();
     var note = fNote.value.trim();
-    // Shared location so a note attaches to its highlight (locKey = loc||page).
-    var loc = page || ("scan" + Date.now());
+    // Unique loc per highlight so two highlights from the SAME page don't collide
+    // on the fingerprint (type|title|author|loc). The note shares this same loc so
+    // it still pairs to its highlight; the page lives in its own field.
+    var loc = "scan" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
     var title = fTitle.value.trim() || "Scanned";
     var author = fAuthor.value.trim();
 

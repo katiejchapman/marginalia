@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>marginalia — scan a highlight</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='14'%20fill='%232a221d'/%3E%3Cpath%20d='M50%2052%20Q34%2034%2050%206%20Q66%2034%2050%2052Z'%20fill='%23ffcc4a'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
 <!-- Standalone, lightweight phone page: small self-contained styles so it loads
      fast over mobile and doesn't pull the full app CSS. -->
 <style>
@@ -15,7 +18,9 @@
     display:flex;align-items:flex-start;justify-content:center;padding:22px 16px 40px;-webkit-text-size-adjust:100%}
   .card{width:100%;max-width:460px;background:#fbf4e2;border:1px solid var(--rule);border-radius:10px;
     padding:24px 20px;box-shadow:0 10px 34px rgba(40,28,12,.16)}
-  h1{font-size:22px;margin:0 0 2px;letter-spacing:.3px;text-align:center}
+  .wm{display:flex;align-items:center;justify-content:center;gap:1px;margin:0 0 2px}
+  .wm svg{width:34px;height:34px;display:block}
+  .wm .rest{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:30px;letter-spacing:.3px;color:var(--ink)}
   .tag{font-size:12.5px;color:var(--muted);margin:0 0 14px;text-align:center}
   .tok{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted);text-align:center;margin:0 0 16px}
   button{font:inherit;cursor:pointer}
@@ -61,7 +66,17 @@
 </head>
 <body>
   <div class="card">
-    <h1>marginalia</h1>
+    <div class="wm" aria-label="marginalia">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <rect x="6" y="6" width="88" height="88" rx="3" fill="#c9a84a"/>
+        <rect x="11" y="11" width="78" height="78" rx="2" fill="#1f4d8f"/>
+        <path d="M14 84 Q22 60 16 40 Q24 52 30 44" stroke="#3f8a4a" stroke-width="2.4" fill="none"/>
+        <circle cx="30" cy="42" r="4" fill="#b03a4a"/><circle cx="17" cy="40" r="3.4" fill="#d98a3a"/>
+        <path d="M86 16 Q78 40 84 60 Q76 48 70 56" stroke="#3f8a4a" stroke-width="2.4" fill="none"/>
+        <circle cx="70" cy="58" r="4" fill="#b03a4a"/><circle cx="84" cy="60" r="3.4" fill="#d98a3a"/>
+        <text x="50" y="80" font-family="UnifrakturMaguntia,serif" font-size="74" fill="#f4e6c2" text-anchor="middle">M</text>
+      </svg><span class="rest">arginalia</span>
+    </div>
     <p class="tag">scan a highlight into your library</p>
     <p class="tok">paired code: <span id="tokBox">…</span></p>
 
