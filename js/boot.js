@@ -86,11 +86,23 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
 document.querySelectorAll(".js-scan").forEach(b=>b.onclick=()=>{if(typeof openAddHighlight==="function")openAddHighlight();else if(typeof startHandoff==="function")startHandoff();});
 document.getElementById("manageBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
-fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ingest(r.result,f.name);fileInput.value="";};r.readAsText(f);};
+// import all chosen files in sequence, staying in the import panel so the user
+// can keep adding files (and pick more in another dialog) before viewing.
+fileInput.onchange=e=>{const files=[...e.target.files];if(!files.length)return;
+  let i=0;const next=()=>{if(i>=files.length){fileInput.value="";return;}
+    const f=files[i++];const r=new FileReader();
+    r.onload=()=>{ingest(r.result,f.name,false,{navigate:false,modified:f.lastModified});next();};
+    r.readAsText(f);};
+  next();};
 fileJson.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{importLibraryJson(r.result);fileJson.value="";};r.readAsText(f);};
 ["dragover","dragenter"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag")}));
 ["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag")}));
-drop.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{if(/\.json$/i.test(f.name))importLibraryJson(r.result);else ingest(r.result,f.name);};r.readAsText(f);});
+drop.addEventListener("drop",e=>{const files=[...e.dataTransfer.files];if(!files.length)return;
+  let i=0;const next=()=>{if(i>=files.length)return;const f=files[i++];const r=new FileReader();
+    r.onload=()=>{if(/\.json$/i.test(f.name))importLibraryJson(r.result);
+      else ingest(r.result,f.name,false,{navigate:false,modified:f.lastModified});next();};
+    r.readAsText(f);};
+  next();});
 document.getElementById("q").oninput=e=>{QUERY=e.target.value;render();renderMemoryResults();const cb=document.getElementById("clearSearch");if(cb)cb.style.display=e.target.value?"block":"none";};
 (function(){const cb=document.getElementById("clearSearch");if(cb)cb.onclick=()=>{const q=document.getElementById("q");if(q)q.value="";QUERY="";const box=document.getElementById("memoryResults");if(box){box.classList.remove("show");box.innerHTML="";}cb.style.display="none";render();if(q)q.focus();};})();
 document.getElementById("sortSel").onchange=e=>{SORT=e.target.value;render();};

@@ -915,8 +915,8 @@ function bsWireToggle(box){box.querySelectorAll(".bs-groupby button[data-bsg]").
 function renderImportHistory(){const box=document.getElementById("importHistory");if(!box)return;
   if(!IMPORT_LOG.length){box.innerHTML='<div class="empty">No imports yet. Your import history will appear here.</div>';return;}
   const fmt=t=>new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",year:"2-digit",hour:"numeric",minute:"2-digit"});
-  box.innerHTML=`<table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>New</th><th>Updated</th><th>Library total</th></tr></thead><tbody>`+
-    IMPORT_LOG.map(r=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.added}</td><td>${r.updated}</td><td>${r.total}</td></tr>`).join("")+
+  box.innerHTML=`<table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>Modified</th><th>New</th><th>Updated</th><th>Library total</th></tr></thead><tbody>`+
+    IMPORT_LOG.map(r=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.modified?fmt(r.modified):"—"}</td><td>${r.added}</td><td>${r.updated}</td><td>${r.total}</td></tr>`).join("")+
     `</tbody></table>`;
 }
 function renderDropPanel(){const box=document.getElementById("dropPanel");if(typeof updateLibSwitch==="function")updateLibSwitch();if(!box)return;
@@ -939,12 +939,13 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
         <button class="btn sm" data-act="new">＋ New library</button>
         <button class="btn ghost sm" data-act="restore">Restore from backup</button>
         ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn ghost sm" data-act="export">Export JSON backup</button><button class="btn ghost sm" data-act="dedup">Remove duplicates</button>`:""}
+        ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn sm" data-act="done">View library →</button>`:""}
       </div>
       ${activeLib&&activeLib.clips&&activeLib.clips.length?backupStatusHtml():""}
       ${batches&&batches.length?`
         <div class="dp-head" style="margin-top:18px">Imports in “${escHtml(activeLib.name)}”</div>
-        <table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>New</th><th>Updated</th><th></th></tr></thead><tbody>
-        ${batches.map((r,ix)=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.added}</td><td>${r.updated||0}</td><td><button class="dp-mini dp-undo" data-act="rmbatch" data-batch="${r.batch||""}" data-idx="${ix}" title="Undo this import — remove the highlights it added" aria-label="Undo this import">✕</button></td></tr>`).join("")}
+        <table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>Modified</th><th>New</th><th>Updated</th><th></th></tr></thead><tbody>
+        ${batches.map((r,ix)=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.modified?fmt(r.modified):"—"}</td><td>${r.added}</td><td>${r.updated||0}</td><td><button class="dp-mini dp-undo" data-act="rmbatch" data-batch="${r.batch||""}" data-idx="${ix}" title="Undo this import — remove the highlights it added" aria-label="Undo this import">✕</button></td></tr>`).join("")}
         </tbody></table>`:""}
     </div>`;
   box.querySelectorAll("[data-act]").forEach(el=>{el.onclick=()=>{
@@ -1341,7 +1342,8 @@ function renderReviewHistory(){const statBox=document.getElementById("reviewStat
   });
 }
 /* ---------- Ingest ---------- */
-function ingest(text,filename,fromSample){let clips=[];
+function ingest(text,filename,fromSample,opts){let clips=[];
+  opts=opts||{};const modified=opts.modified||null;          // source file's lastModified (for import history)
   // If the currently loaded library is the built-in sample and the user now imports
   // their own data, clear the sample first so it doesn't merge in.
   // If the active library is the built-in sample and the user imports their own data,
@@ -1361,7 +1363,7 @@ function ingest(text,filename,fromSample){let clips=[];
     STATE.decks=[{id:uid(),name:"Vocabulary",tags:{vocab:true,quotes:false,topic:false}},{id:uid(),name:"Topics of interest",tags:{vocab:false,quotes:false,topic:true}}];
     ACTIVE_DECK=STATE.decks[0].id;
     toast(`Imported ${clips.length} highlight${clips.length===1?"":"s"}.`);
-    IMPORT_LOG.unshift({batch,date:when,name:filename||"import",added:clips.length,updated:0,total:STATE.clips.length,fps:clips.map(c=>c.fp)});
+    IMPORT_LOG.unshift({batch,date:when,modified,name:filename||"import",added:clips.length,updated:0,total:STATE.clips.length,fps:clips.map(c=>c.fp)});
   }else{
     const byFp=new Map(STATE.clips.map(c=>[c.fp,c]));
     let added=0,changed=0,maxId=STATE.clips.reduce((m,c)=>Math.max(m,c.id||0),0);const addedFps=[];
@@ -1372,13 +1374,15 @@ function ingest(text,filename,fromSample){let clips=[];
         else{ex.text=c.text;ex.cat=ex.catLocked?ex.cat:autoCategorize(ex);changed++;}
       }});
     toast(added||changed?`Merged: ${added} new, ${changed} updated.`:"No new highlights — library already up to date.");
-    if(added||changed)IMPORT_LOG.unshift({batch,date:when,name:filename||"import",added,updated:changed,total:STATE.clips.length,fps:addedFps});
+    if(added||changed)IMPORT_LOG.unshift({batch,date:when,modified,name:filename||"import",added,updated:changed,total:STATE.clips.length,fps:addedFps});
   }
   IMPORT_LOG=IMPORT_LOG.slice(0,100);
   IS_SAMPLE=!!fromSample;
   saveState();
-  document.getElementById("drop").classList.add("hidden");document.getElementById("app").classList.remove("hidden");
-  showSurprise();render();renderDropPanel();}
+  // navigate to the library by default; pass {navigate:false} to stay in the
+  // import panel so the user can add successive files before viewing.
+  if(opts.navigate!==false){document.getElementById("drop").classList.add("hidden");document.getElementById("app").classList.remove("hidden");showSurprise();}
+  render();renderDropPanel();}
 
 /* ---------- Fingerprint + dedup ---------- */
 function clipFp(c){const t=cleanTitle(c.title||"").toLowerCase();const a=(c.author||"").toLowerCase();

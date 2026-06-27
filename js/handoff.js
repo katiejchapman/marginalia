@@ -170,9 +170,14 @@ async function pollHandoffOnce(){
 function receiveHandoff(payload, batch){
   batch = batch || "handoff";
   const items = Array.isArray(payload) ? payload : [payload];
-  // Don't merge into the built-in sample; start a real library if needed.
-  if (typeof IS_SAMPLE !== "undefined" && IS_SAMPLE) createLibraryQuiet("My Library");
-  ensureActiveLib("My Library", false);
+  // Add to the CURRENT library (create one only if none exists). If the current
+  // library is the built-in sample, adopt it as a real library in place so the
+  // handoff joins what's on screen instead of forking off a separate library.
+  const lib = ensureActiveLib(undefined, false);
+  if (lib.isSample || (typeof IS_SAMPLE !== "undefined" && IS_SAMPLE)){
+    lib.isSample = false;
+    if (lib.name === "Sample") lib.name = "My Library";
+  }
 
   const byFp = new Map(STATE.clips.map(c => [c.fp, c]));
   let maxId = STATE.clips.reduce((m, c) => Math.max(m, c.id || 0), 0);
