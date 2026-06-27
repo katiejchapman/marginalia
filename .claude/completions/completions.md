@@ -29,3 +29,4 @@
 ## f4b68de — Catalog-card random highlight, library switcher, smooth timeline
 ## 21d1adb — UI pass: doors/divider, review, deck contents, term ID & timeline
 ## 58e44c7 / 08f75f2 / 42a418d — index.html split: extract JS, extract CSS, reorg rules
+## 48569f2 — feat: reading marks, collapse persistence, dedup libraries, light-mode overhaul (2026-06-27) <!--auto:48569f2-->
