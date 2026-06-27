@@ -3,6 +3,7 @@ const CAT_RULES=new Map(); // learned: normalized text/term -> category (persist
 let REVIEW_LOG=[]; // past review sessions {date,total,acc,grades}
 let IMPORT_LOG=[]; // past imports {date,name,added,updated,total}
 let IS_SAMPLE=false; // true while the built-in sample is loaded
+const SAMPLE_VERSION=2; // bump when the built-in sample content changes so cached samples get rebuilt
 let CAT_FILTER={vocab:1,quotes:1,topic:1,none:1};
 let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true,NOTES_ONLY=false,TL_GRAIN="week";
 // NOTE: keys (vocab/quotes/topic) are DATA — never change them. Values are DISPLAY LABELS.
@@ -134,10 +135,13 @@ function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=(n>>16)+p,g=((n>>8
   r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));return "#"+(r<<16|g<<8|b).toString(16).padStart(6,"0");}
 function bookColor(i){return SPINE_COLORS[i%SPINE_COLORS.length];}
 let BOOK_SIZE="m"; // s | m | l
+let SHELF_PAGE=0,SHELF_BOOKS=[]; // bookshelf is capped at 2 rows; extra books page in via the flip arrow
 function renderShelf(books){const shelf=document.getElementById("shelf");shelf.innerHTML="";
+  SHELF_BOOKS=books;
   const size=(BOOK_SIZE==="s"||BOOK_SIZE==="m"||BOOK_SIZE==="l")?BOOK_SIZE:"m";
   shelf.className="shelf size-"+size;
   const mult=size==="s"?0.82:size==="l"?1.18:1;
+  const spineEls=[];
   books.forEach((b,i)=>{const color=bookColor(i);
     const sp=document.createElement("div");
     const hsh=Math.abs([...(b.title||"")].reduce((h,ch)=>((h<<5)-h+ch.charCodeAt(0))|0,0)); // stable per-title
@@ -148,11 +152,33 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
     sp.style.setProperty("--spine-h",Math.round(baseH*mult)+"px");
     sp.style.setProperty("--spine-w",Math.round(baseW*mult)+"px");
     sp.className="book-spine "+sv;
-    sp.innerHTML=`<div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div>`;
+    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
     sp.title=b.title+(b.author?" — "+b.author:"");
     sp.onclick=()=>{const el=document.getElementById("book-"+b.key);if(el){el.classList.remove("collapsed");el.scrollIntoView({behavior:"smooth"});}};
-    shelf.appendChild(sp);});
-  const tog=document.getElementById("bookSizeToggle");if(tog)tog.querySelectorAll("button").forEach(btn=>btn.dataset.on=btn.dataset.sz===BOOK_SIZE?1:0);}
+    shelf.appendChild(sp);spineEls.push(sp);});
+  const tog=document.getElementById("bookSizeToggle");if(tog)tog.querySelectorAll("button").forEach(btn=>btn.dataset.on=btn.dataset.sz===BOOK_SIZE?1:0);
+  paginateShelf(shelf,spineEls);}
+// Cap the shelf at 2 rows; if the books overflow, hide the rest and add a square flip arrow that pages through.
+function paginateShelf(shelf,spineEls){
+  shelf.classList.remove("paged");
+  const old=shelf.querySelector(".shelf-flip");if(old)old.remove();
+  if(spineEls.length<2)return;
+  const cs=getComputedStyle(shelf),padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0;
+  const full=shelf.clientWidth-padL-padR;
+  if(full<=0)return; // shelf not laid out (library tab hidden) — re-runs when it becomes visible
+  const gap=12,gutter=58; // gutter reserves room for the flip arrow (kept in sync with .shelf.paged padding-right)
+  const widths=spineEls.map(el=>el.offsetWidth);
+  const pack=avail=>{const rows=[[]];let w=0;widths.forEach((wd,idx)=>{const add=(rows[rows.length-1].length?gap:0)+wd;if(w+add>avail&&rows[rows.length-1].length){rows.push([idx]);w=wd;}else{rows[rows.length-1].push(idx);w+=add;}});return rows;};
+  if(pack(full).length<=2){SHELF_PAGE=0;return;} // fits in two rows — no paging
+  const rows=pack(full-gutter),pages=Math.ceil(rows.length/2);
+  if(SHELF_PAGE>=pages||SHELF_PAGE<0)SHELF_PAGE=0;
+  const lo=SHELF_PAGE*2,show=new Set([...(rows[lo]||[]),...(rows[lo+1]||[])]);
+  spineEls.forEach((el,idx)=>{el.style.display=show.has(idx)?"":"none";});
+  shelf.classList.add("paged");
+  const btn=document.createElement("button");btn.className="shelf-flip";btn.type="button";
+  btn.innerHTML="▸";btn.title=`More books — page ${SHELF_PAGE+1} of ${pages}`;btn.setAttribute("aria-label","Show more books");
+  btn.onclick=e=>{e.stopPropagation();SHELF_PAGE=(SHELF_PAGE+1)%pages;renderShelf(SHELF_BOOKS);};
+  shelf.appendChild(btn);}
 function render(){const list=document.getElementById("list");list.innerHTML="";const q=QUERY.toLowerCase();
   const books=groupByBook();
   if(SORT==="author")books.sort((a,b)=>(a.author||"￿").localeCompare(b.author||"￿")||a.title.localeCompare(b.title));
@@ -814,12 +840,16 @@ function renderBookStats(){const box=document.getElementById("bookStats");if(!bo
   const toggle=`<div class="bs-groupby"><button data-bsg="book" data-on="${BOOKSTATS_GROUP==="book"?1:0}">by book</button><button data-bsg="author" data-on="${BOOKSTATS_GROUP==="author"?1:0}">by author</button></div>`;
   if(!books.length){box.innerHTML=toggle+'<div class="empty">Import highlights first.</div>';bsWireToggle(box);return;}
   const fmt=d=>d?`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`:"—";
+  // Bar length is relative to highlight count *across* books: the most-highlighted
+  // book fills the track (the box); the rest scale down. Segment widths use this
+  // global max so the bar can't exceed the box; legend %s stay within-book.
+  const gMax=Math.max(1,...books.map(b=>b.clips.length));
   const rows=books.map(b=>{const by={vocab:0,quotes:0,topic:0,none:0};
     b.clips.forEach(c=>by[c.cat]=(by[c.cat]||0)+1);
     const dates=b.clips.map(parseDate).filter(Boolean).sort((a,b)=>a-b);
     const total=b.clips.length;const maxBar=total||1;
     const segLab={vocab:"vocab",quotes:"quote",topic:"topic of interest",none:"untagged"};
-    const seg=(k,col)=>by[k]?`<span style="background:${col};width:${by[k]/maxBar*100}%"></span>`:"";
+    const seg=(k,col)=>by[k]?`<span style="background:${col};width:${(by[k]/gMax*100).toFixed(2)}%"></span>`:"";
     const legend=`<div class="bs-legend">`+[["vocab","var(--cat-vocab)"],["quotes","var(--cat-quotes)"],["topic","var(--cat-topic)"],["none","var(--cat-none)"]].filter(([k])=>by[k]).map(([k,col])=>`<span class="bs-leg"><i style="background:${col}"></i>${by[k]} ${segLab[k]} · ${Math.round(by[k]/maxBar*100)}%</span>`).join("")+`</div>`;
     // per-book vocab ranked by rarity/difficulty
     const vocab=[...new Set(b.clips.filter(c=>c.cat==="vocab"&&isVocabWord(c)).map(c=>vocabTermOf(c)).filter(Boolean))]

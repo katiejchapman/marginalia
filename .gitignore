@@ -1,11 +1,43 @@
+# Whitelist repo: ignore everything, then re-include what we ship.
+# Leading "/" anchors a rule to the repo root so old copies under
+# "previous versions/", "design/", etc. don't leak in. The markdown rules are
+# intentionally NOT anchored — we want .md tracked in any directory.
 *
-!index.html
-!CLAUDE.md
-!styles.css
-!js/
-!js/**
-!.claude/
-!.claude/**
-!docs/
-!docs/**
-!.gitignore
+# Descend into every directory so the markdown rule below can reach any depth
+# (files still stay ignored unless explicitly whitelisted).
+!**/
+
+!/.gitignore
+
+# App (static client)
+!/index.html
+!/scan.html
+!/styles.css
+!/js/
+!/js/**
+
+# Server-side relay (Cloudflare Pages Functions) + config
+!/functions/
+!/functions/**
+!/wrangler.toml
+
+# Tests
+!/test/
+!/test/**
+
+# Project config
+!/.claude/
+!/.claude/**
+!/docs/
+!/docs/**
+
+# Markdown anywhere in the repo
+!*.md
+!**/*.md
+
+# Always ignored, even if a rule above would catch them
+.claude/settings.local.json
+.wrangler/
+node_modules/
+__pycache__/
+.DS_Store

@@ -127,12 +127,19 @@
   .shelf.size-m .book-spine{height:172px;width:46px}
   .shelf.size-l .book-spine{height:200px;width:52px}
   .shelf{position:relative;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:20px 18px 0;border-radius:4px 4px 0 0;background:none}
+  .shelf.paged{padding-right:76px} /* reserve a gutter for the flip arrow (18 base + 58 gutter, in sync with paginateShelf) */
+  .shelf-flip{position:absolute;right:12px;bottom:8px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--rule-strong);color:var(--accent);border-radius:4px;cursor:pointer;font-size:21px;line-height:1;z-index:21;transition:.12s;box-shadow:0 4px 10px -6px rgba(0,0,0,.5)}
+  .shelf-flip:hover{border-color:var(--accent);background:var(--paper-2)}
   [data-mode="light"] .shelf{background:none}
   .shelf:after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:13px;background:linear-gradient(180deg,var(--shelf-wood),var(--shelf-edge));border-radius:0 0 3px 3px;box-shadow:0 7px 16px -6px rgba(0,0,0,.55)}
   /* book: spine that widens to a cover (Title-2 crossfade) */
-  .book-spine{position:relative;height:var(--spine-h,200px);width:var(--spine-w,52px);cursor:pointer;border-radius:4px;overflow:hidden;
+  /* slot stays a fixed flex item (never reflows the shelf); .spine-inner is the
+     visible book that grows on hover, overlaying neighbors instead of re-wrapping */
+  .book-spine{position:relative;height:var(--spine-h,200px);width:var(--spine-w,52px);cursor:pointer;border-radius:4px;
+    transition:border-radius .4s ease}
+  .book-spine .spine-inner{position:absolute;top:0;bottom:0;left:0;width:100%;border-radius:inherit;overflow:hidden;
     box-shadow:inset -5px 0 10px -4px rgba(0,0,0,.5),inset 4px 0 5px -2px rgba(255,255,255,.12),0 6px 14px -5px rgba(0,0,0,.55);
-    transition:width .5s cubic-bezier(.34,.05,.2,1),border-radius .4s ease}
+    transition:width .5s cubic-bezier(.34,.05,.2,1)}
   .book-spine .cloth{position:absolute;inset:0;filter:url(#clothTex)}
   .book-spine .band{position:absolute;left:0;right:0;height:9px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(0,0,0,.3));z-index:2;transition:opacity .35s}
   .book-spine .band.t{top:12px}.book-spine .band.b{bottom:14px}
@@ -143,10 +150,11 @@
   .book-spine .htitle{position:absolute;top:30px;left:11px;right:11px;text-align:center;z-index:4;color:#f4e6c2;font-weight:600;font-size:16px;line-height:1.2;text-shadow:0 1px 3px rgba(0,0,0,.6);opacity:0;transition:opacity .35s .2s}
   .book-spine .cauthor{position:absolute;bottom:20px;left:10px;right:10px;text-align:center;color:rgba(244,230,194,.82);font-style:italic;font-size:11px;z-index:4;opacity:0;transition:opacity .4s .15s}
   .book-spine .scount{position:absolute;bottom:3px;left:0;right:0;height:11px;text-align:center;font-family:var(--mono);font-size:7px;line-height:11px;color:rgba(255,235,200,.62);text-shadow:0 1px 1px rgba(0,0,0,.6);z-index:5}
-  .shelf .book-spine:hover{width:158px;z-index:20}
-  .shelf.size-s .book-spine:hover{width:118px}
-  .shelf.size-m .book-spine:hover{width:140px}
-  .shelf.size-l .book-spine:hover{width:158px}
+  .shelf .book-spine:hover{z-index:20}
+  .shelf .book-spine:hover .spine-inner{width:158px}
+  .shelf.size-s .book-spine:hover .spine-inner{width:118px}
+  .shelf.size-m .book-spine:hover .spine-inner{width:140px}
+  .shelf.size-l .book-spine:hover .spine-inner{width:158px}
   .shelf .book-spine:hover .vtitle,.shelf .book-spine:hover .scount{opacity:0}
   .shelf .book-spine:hover .htitle,.shelf .book-spine:hover .cover-orn,.shelf .book-spine:hover .cauthor{opacity:1}
   .shelf .book-spine:hover .band{opacity:0}
@@ -746,8 +754,9 @@
   .recap-stat b{display:block;font-family:var(--display);font-size:26px;line-height:1;color:var(--ink)}
   .recap-stat span{font-family:var(--head);font-size:13px;color:var(--ink-soft)}
   .recap-bars{display:grid;gap:8px;margin-top:12px}
-  .recap-bar{display:grid;grid-template-columns:110px 1fr 30px;gap:8px;align-items:center;font-family:var(--head);font-size:14px;color:var(--ink-soft)}
-  .recap-bar i{display:block;height:7px;border-radius:99px;background:var(--accent)}
+  .recap-bar{display:grid;grid-template-columns:110px 1fr 30px;gap:8px;align-items:center;font-family:var(--head);font-size:14px;color:var(--ink-soft);max-width:100%}
+  .recap-bar>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .recap-bar i{display:block;height:7px;border-radius:99px;background:var(--accent);max-width:100%}
   .recap-bar em{font-style:normal;font-family:var(--mono);font-size:11px;text-align:right}
   .evo-copy{font-family:var(--display);font-size:18px;line-height:1.5;margin:8px 0 12px;color:var(--ink)}
   .evo-copy mark{background:transparent;color:var(--accent);padding:0}
@@ -857,3 +866,29 @@
   .deck-choose .dc-opt:hover{border-color:var(--accent);color:var(--accent)}
   .deck-choose .dc-new{color:var(--accent)}
   .deck-choose .dc-cancel{background:transparent;border:none;color:var(--ink-soft);font-family:var(--head);font-size:13px;cursor:pointer;margin-top:2px}
+
+  /* ---------- Phone handoff (receiver modal) ---------- */
+  .handoff-overlay{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;
+    background:rgba(18,12,6,.62);backdrop-filter:blur(2px);padding:20px}
+  .handoff-overlay.show{display:flex}
+  .handoff-modal{position:relative;width:100%;max-width:360px;background:var(--card);color:var(--ink);
+    border:1px solid var(--rule-strong);border-radius:8px;padding:24px 22px 20px;text-align:center;
+    box-shadow:0 18px 50px rgba(0,0,0,.45)}
+  .handoff-close{position:absolute;top:8px;right:10px;background:none;border:none;color:var(--ink-soft);
+    font-size:18px;cursor:pointer;line-height:1;padding:4px}
+  .handoff-close:hover{color:var(--accent)}
+  .handoff-h{font-family:var(--title);font-size:20px;margin:2px 0 4px}
+  .handoff-sub{color:var(--ink-soft);font-size:13px;margin:0 0 16px}
+  .handoff-qr{width:208px;height:208px;margin:0 auto;display:flex;align-items:center;justify-content:center;
+    background:#f4e9cf;border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+  .handoff-qr img,.handoff-qr canvas{display:block}
+  .handoff-qr.noqr{color:#7a6750;font-size:13px;padding:14px;text-align:center;height:auto;min-height:80px}
+  .handoff-link{font-size:12px;color:var(--ink-soft);margin:12px 0 0;word-break:break-all}
+  .handoff-link a{color:var(--accent)}
+  .handoff-status{margin-top:14px;font-size:14px;min-height:22px}
+  .handoff-status.waiting{color:var(--ink-soft)}
+  .handoff-status.waiting::before{content:"";display:inline-block;width:8px;height:8px;margin-right:7px;
+    border-radius:50%;background:var(--accent);animation:handoffPulse 1.1s ease-in-out infinite;vertical-align:middle}
+  .handoff-status.ok{color:var(--cat-note)}
+  .handoff-status.expired{color:var(--cat-quotes)}
+  @keyframes handoffPulse{0%,100%{opacity:.3}50%{opacity:1}}

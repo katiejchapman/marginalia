@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>marginalia — scan a highlight</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20100%20100'%3E%3Crect%20width='100'%20height='100'%20rx='14'%20fill='%232a221d'/%3E%3Cpath%20d='M50%2052%20Q34%2034%2050%206%20Q66%2034%2050%2052Z'%20fill='%23ffcc4a'/%3E%3C/svg%3E">
+<!-- Standalone, lightweight phone page: small self-contained styles so it loads
+     fast over mobile and doesn't pull the full app CSS. -->
+<style>
+  :root{--paper:#f4e9cf;--ink:#2a221d;--accent:#c9a84a;--rule:#d8c69a;--ok:#3f7a4a;--err:#b0382e;--muted:#8a7350}
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{background:var(--paper);color:var(--ink);font-family:Georgia,"Times New Roman",serif;
+    display:flex;align-items:flex-start;justify-content:center;padding:22px 16px 40px;-webkit-text-size-adjust:100%}
+  .card{width:100%;max-width:460px;background:#fbf4e2;border:1px solid var(--rule);border-radius:10px;
+    padding:24px 20px;box-shadow:0 10px 34px rgba(40,28,12,.16)}
+  h1{font-size:22px;margin:0 0 2px;letter-spacing:.3px;text-align:center}
+  .tag{font-size:12.5px;color:var(--muted);margin:0 0 14px;text-align:center}
+  .tok{font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:var(--muted);text-align:center;margin:0 0 16px}
+  button{font:inherit;cursor:pointer}
+  .big-btn{font-size:17px;padding:14px 22px;width:100%;background:var(--accent);color:#2a2014;
+    border:1px solid #a8862f;border-radius:7px}
+  .big-btn:disabled{opacity:.55;cursor:default}
+  .hidden{display:none!important}
+  .scan-status{margin-top:14px;min-height:20px;font-size:14px;line-height:1.4;text-align:center}
+  .scan-status.ok{color:var(--ok)}
+  .scan-status.err{color:var(--err)}
+  .scan-status.busy{color:var(--muted)}
+  /* editable correction form */
+  .form{margin-top:18px}
+  .form label{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px;letter-spacing:.02em}
+  .form textarea,.form input,.form select{width:100%;font:inherit;font-size:15px;color:var(--ink);
+    background:#fffdf6;border:1px solid var(--rule);border-radius:6px;padding:9px 10px}
+  .form textarea{min-height:120px;resize:vertical;line-height:1.45}
+  .row2{display:flex;gap:10px}
+  .row2>div{flex:1}
+  .preview{margin-top:14px;text-align:center}
+  .preview img{max-width:100%;max-height:180px;border:1px solid var(--rule);border-radius:6px}
+  .send-row{margin-top:18px}
+  .rescan{margin-top:10px;width:100%;background:transparent;color:var(--muted);
+    border:1px solid var(--rule);border-radius:7px;padding:10px}
+</style>
+</head>
+<body>
+  <div class="card">
+    <h1>marginalia</h1>
+    <p class="tag">scan a highlight into your library</p>
+    <p class="tok">paired code: <span id="tokBox">…</span></p>
+
+    <button class="big-btn" id="scanBtn" type="button">📷 Scan a highlight</button>
+    <input type="file" id="imgInput" accept="image/*" capture="environment" class="hidden">
+    <div class="scan-status" id="scanStatus"></div>
+
+    <div class="preview hidden" id="preview"></div>
+
+    <div class="form hidden" id="form">
+      <label for="fText">Highlight (edit to correct the scan)</label>
+      <textarea id="fText" placeholder="The recognized text appears here — fix any OCR mistakes."></textarea>
+      <div class="row2">
+        <div>
+          <label for="fTitle">Book</label>
+          <input id="fTitle" type="text" placeholder="Book title">
+        </div>
+        <div>
+          <label for="fAuthor">Author</label>
+          <input id="fAuthor" type="text" placeholder="Author">
+        </div>
+      </div>
+      <div class="row2">
+        <div>
+          <label for="fPage">Page</label>
+          <input id="fPage" type="text" inputmode="numeric" placeholder="e.g. 42">
+        </div>
+        <div>
+          <label for="fTag">Tag</label>
+          <select id="fTag">
+            <option value="quotes">quote</option>
+            <option value="vocab">vocab</option>
+            <option value="topic">topic of interest</option>
+            <option value="none">untagged</option>
+          </select>
+        </div>
+      </div>
+      <label for="fNote">Note (optional)</label>
+      <textarea id="fNote" style="min-height:64px" placeholder="A margin note to attach to this highlight."></textarea>
+
+      <div class="send-row">
+        <button class="big-btn" id="sendBtn" type="button">Send to my library</button>
+        <button class="rescan" id="rescanBtn" type="button">Scan a different photo</button>
+      </div>
+    </div>
+  </div>
+  <script src="/js/scan.js"></script>
+</body>
+</html>

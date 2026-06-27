@@ -28,7 +28,11 @@ document.querySelector(".tabs").addEventListener("click",e=>{const b=e.target.cl
   if(PAGE!=="review")endReview();
   if(PAGE==="timeline")renderTimeline();
   if(PAGE==="connections")renderExplore();
-  if(PAGE==="review")resetReviewSetup();});
+  if(PAGE==="review")resetReviewSetup();
+  // the shelf can't measure its width while hidden — re-paginate now that the library is visible
+  if(PAGE==="library"&&typeof renderShelf==="function")renderShelf(SHELF_BOOKS);});
+// re-paginate the shelf when the viewport width changes (rows-per-width shifts)
+let _shelfRz;addEventListener("resize",()=>{clearTimeout(_shelfRz);_shelfRz=setTimeout(()=>{if(PAGE==="library"&&typeof renderShelf==="function")renderShelf(SHELF_BOOKS);},160);});
 document.querySelectorAll(".rv-subtab").forEach(t=>t.onclick=()=>showReviewSub(t.dataset.rv));
 document.addEventListener("mousemove",e=>{if(!LAMP_ON)return;
   lampC.style.display="block";lampH.style.display="block";
@@ -80,6 +84,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();});
 
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
+document.querySelectorAll(".js-scan").forEach(b=>b.onclick=()=>{if(typeof startHandoff==="function")startHandoff();});
 document.getElementById("manageBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
 fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ingest(r.result,f.name);fileInput.value="";};r.readAsText(f);};
 fileJson.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{importLibraryJson(r.result);fileJson.value="";};r.readAsText(f);};
@@ -130,8 +135,10 @@ updateVisitorInfo();
 /* ---------- Restore previous session ---------- */
 (function restoreSession(){
   if(loadState()){
-    // the sample is always available as a selectable library — recreate it if missing, without leaving the user's library
-    if(!LIBRARIES.some(l=>l.isSample)&&typeof loadSample==="function"){const prev=ACTIVE_LIB;loadSample();if(prev&&LIBRARIES.some(l=>l.id===prev))switchLibrary(prev);}
+    // the sample is always available as a selectable library — recreate it if missing OR rebuild it if the
+    // built-in content changed (stale cached version), without leaving the user's own library
+    const _smp=LIBRARIES.find(l=>l.isSample);
+    if((!_smp||_smp.sampleVer!==SAMPLE_VERSION)&&typeof loadSample==="function"){const prev=ACTIVE_LIB;loadSample();if(prev&&LIBRARIES.some(l=>l.id===prev))switchLibrary(prev);}
     document.getElementById("drop").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     showSurprise();render();renderDropPanel();updateLibSwitch();
@@ -601,13 +608,317 @@ Meditations (Marcus Aurelius)
 - Your Note on page 50 | location 903 | Added on Sunday, 08 September 2024 12:09:55
 
 The whole book really comes down to this one line.
+==========
+The Great Gatsby (F. Scott Fitzgerald)
+- Your Highlight on page 66 | location 1190 | Added on Monday, 04 January 2024 08:00:00
+
+So we beat on, boats against the current, borne back ceaselessly into the past.
+==========
+The Great Gatsby (F. Scott Fitzgerald)
+- Your Highlight on page 74 | location 1320 | Added on Tuesday, 06 January 2024 09:17:11
+
+ineffable
+==========
+The Great Gatsby (F. Scott Fitzgerald)
+- Your Highlight on page 84 | location 1490 | Added on Wednesday, 08 January 2024 10:34:22
+
+West Egg
+==========
+War and Peace (Leo Tolstoy)
+- Your Highlight on page 90 | location 1580 | Added on Thursday, 11 February 2024 09:13:07
+
+We can know only that we know nothing. And that is the highest degree of human wisdom.
+==========
+War and Peace (Leo Tolstoy)
+- Your Highlight on page 98 | location 1710 | Added on Friday, 13 February 2024 10:30:18
+
+magnanimity
+==========
+War and Peace (Leo Tolstoy)
+- Your Highlight on page 108 | location 1880 | Added on Saturday, 15 February 2024 11:47:29
+
+Borodino
+==========
+Anna Karenina (Leo Tolstoy)
+- Your Highlight on page 114 | location 1970 | Added on Sunday, 18 March 2024 10:26:14
+
+All happy families are alike; each unhappy family is unhappy in its own way.
+==========
+Anna Karenina (Leo Tolstoy)
+- Your Highlight on page 122 | location 2100 | Added on Monday, 20 March 2024 11:43:25
+
+vexation
+==========
+Anna Karenina (Leo Tolstoy)
+- Your Highlight on page 132 | location 2270 | Added on Tuesday, 22 March 2024 12:00:36
+
+Moscow
+==========
+Jane Eyre (Charlotte Bronte)
+- Your Highlight on page 138 | location 2360 | Added on Wednesday, 25 April 2024 11:39:21
+
+I am no bird; and no net ensnares me: I am a free human being with an independent will.
+==========
+Jane Eyre (Charlotte Bronte)
+- Your Highlight on page 146 | location 2490 | Added on Thursday, 27 April 2024 12:56:32
+
+sojourn
+==========
+Jane Eyre (Charlotte Bronte)
+- Your Highlight on page 156 | location 2660 | Added on Friday, 28 April 2024 13:13:43
+
+Thornfield
+==========
+Wuthering Heights (Emily Bronte)
+- Your Highlight on page 162 | location 2750 | Added on Saturday, 08 May 2024 12:52:28
+
+Whatever our souls are made of, his and mine are the same.
+==========
+Wuthering Heights (Emily Bronte)
+- Your Highlight on page 170 | location 2880 | Added on Sunday, 10 May 2024 13:09:39
+
+wuthering
+==========
+Wuthering Heights (Emily Bronte)
+- Your Highlight on page 180 | location 3050 | Added on Monday, 12 May 2024 14:26:50
+
+Yorkshire
+==========
+Great Expectations (Charles Dickens)
+- Your Highlight on page 186 | location 3140 | Added on Tuesday, 15 June 2024 13:05:35
+
+Suffering has been stronger than all other teaching.
+==========
+Great Expectations (Charles Dickens)
+- Your Highlight on page 194 | location 3270 | Added on Wednesday, 17 June 2024 14:22:46
+
+remonstrance
+==========
+Great Expectations (Charles Dickens)
+- Your Highlight on page 204 | location 3440 | Added on Thursday, 19 June 2024 15:39:57
+
+Satis House
+==========
+A Tale of Two Cities (Charles Dickens)
+- Your Highlight on page 210 | location 3530 | Added on Friday, 22 July 2024 14:18:42
+
+It was the best of times, it was the worst of times.
+==========
+A Tale of Two Cities (Charles Dickens)
+- Your Highlight on page 218 | location 3660 | Added on Saturday, 24 July 2024 15:35:53
+
+expiation
+==========
+A Tale of Two Cities (Charles Dickens)
+- Your Highlight on page 228 | location 3830 | Added on Sunday, 26 July 2024 16:52:04
+
+Bastille
+==========
+The Picture of Dorian Gray (Oscar Wilde)
+- Your Highlight on page 234 | location 3920 | Added on Monday, 05 August 2024 15:31:49
+
+The only way to get rid of a temptation is to yield to it.
+==========
+The Picture of Dorian Gray (Oscar Wilde)
+- Your Highlight on page 242 | location 4050 | Added on Tuesday, 07 August 2024 16:48:00
+
+hedonism
+==========
+The Picture of Dorian Gray (Oscar Wilde)
+- Your Highlight on page 252 | location 4220 | Added on Wednesday, 09 August 2024 17:05:11
+
+London
+==========
+Don Quixote (Miguel de Cervantes)
+- Your Highlight on page 258 | location 4310 | Added on Thursday, 12 September 2024 16:44:56
+
+When life itself seems lunatic, who knows where madness lies?
+==========
+Don Quixote (Miguel de Cervantes)
+- Your Highlight on page 266 | location 4440 | Added on Friday, 14 September 2024 17:01:07
+
+quixotic
+==========
+Don Quixote (Miguel de Cervantes)
+- Your Highlight on page 276 | location 4610 | Added on Saturday, 16 September 2024 18:18:18
+
+La Mancha
+==========
+The Iliad (Homer)
+- Your Highlight on page 282 | location 4700 | Added on Sunday, 19 October 2024 17:57:03
+
+Any moment might be our last. Everything is more beautiful because we are doomed.
+==========
+The Iliad (Homer)
+- Your Highlight on page 290 | location 4830 | Added on Monday, 21 October 2024 18:14:14
+
+ineluctable
+==========
+The Iliad (Homer)
+- Your Highlight on page 300 | location 5000 | Added on Tuesday, 23 October 2024 19:31:25
+
+Troy
+==========
+Hamlet (William Shakespeare)
+- Your Highlight on page 306 | location 5090 | Added on Wednesday, 26 November 2024 18:10:10
+
+This above all: to thine own self be true.
+==========
+Hamlet (William Shakespeare)
+- Your Highlight on page 314 | location 5220 | Added on Thursday, 28 November 2024 19:27:21
+
+antic
+==========
+Hamlet (William Shakespeare)
+- Your Highlight on page 324 | location 5390 | Added on Friday, 28 November 2024 08:44:32
+
+Elsinore
+==========
+Paradise Lost (John Milton)
+- Your Highlight on page 330 | location 5480 | Added on Saturday, 09 December 2024 19:23:17
+
+The mind is its own place, and in itself can make a heaven of hell, a hell of heaven.
+==========
+Paradise Lost (John Milton)
+- Your Highlight on page 338 | location 5610 | Added on Sunday, 11 December 2024 08:40:28
+
+pandemonium
+==========
+Paradise Lost (John Milton)
+- Your Highlight on page 348 | location 5780 | Added on Monday, 13 December 2024 09:57:39
+
+Eden
+==========
+The Divine Comedy (Dante Alighieri)
+- Your Highlight on page 354 | location 5870 | Added on Tuesday, 16 January 2024 08:36:24
+
+Do not be afraid; our fate cannot be taken from us; it is a gift.
+==========
+The Divine Comedy (Dante Alighieri)
+- Your Highlight on page 362 | location 6000 | Added on Wednesday, 18 January 2024 09:53:35
+
+contrapasso
+==========
+The Divine Comedy (Dante Alighieri)
+- Your Highlight on page 372 | location 6170 | Added on Thursday, 20 January 2024 10:10:46
+
+Florence
+==========
+Faust (Johann Wolfgang von Goethe)
+- Your Highlight on page 378 | location 6260 | Added on Friday, 23 February 2024 09:49:31
+
+He alone deserves freedom and life who must conquer them each day.
+==========
+Faust (Johann Wolfgang von Goethe)
+- Your Highlight on page 386 | location 6390 | Added on Saturday, 25 February 2024 10:06:42
+
+ennui
+==========
+Faust (Johann Wolfgang von Goethe)
+- Your Highlight on page 396 | location 6560 | Added on Sunday, 27 February 2024 11:23:53
+
+Mephistopheles
+==========
+Leaves of Grass (Walt Whitman)
+- Your Highlight on page 402 | location 6650 | Added on Monday, 06 March 2024 10:02:38
+
+I am large, I contain multitudes.
+==========
+Leaves of Grass (Walt Whitman)
+- Your Highlight on page 410 | location 6780 | Added on Tuesday, 08 March 2024 11:19:49
+
+effuse
+==========
+Leaves of Grass (Walt Whitman)
+- Your Highlight on page 420 | location 6950 | Added on Wednesday, 10 March 2024 12:36:00
+
+Manhattan
+==========
+The Stranger (Albert Camus)
+- Your Highlight on page 426 | location 7040 | Added on Thursday, 13 April 2024 11:15:45
+
+I opened myself to the gentle indifference of the world.
+==========
+The Stranger (Albert Camus)
+- Your Highlight on page 434 | location 7170 | Added on Friday, 15 April 2024 12:32:56
+
+absurdity
+==========
+The Stranger (Albert Camus)
+- Your Highlight on page 444 | location 7340 | Added on Saturday, 17 April 2024 13:49:07
+
+Algiers
+==========
+Thus Spoke Zarathustra (Friedrich Nietzsche)
+- Your Highlight on page 450 | location 7430 | Added on Sunday, 20 May 2024 12:28:52
+
+You must have chaos within you to give birth to a dancing star.
+==========
+Thus Spoke Zarathustra (Friedrich Nietzsche)
+- Your Highlight on page 458 | location 7560 | Added on Monday, 22 May 2024 13:45:03
+
+transvaluation
+==========
+Thus Spoke Zarathustra (Friedrich Nietzsche)
+- Your Highlight on page 468 | location 7730 | Added on Tuesday, 24 May 2024 14:02:14
+
+Zarathustra
+==========
+Notes from Underground (Fyodor Dostoevsky)
+- Your Highlight on page 474 | location 7820 | Added on Wednesday, 27 June 2024 13:41:59
+
+I am a sick man. I am a spiteful man. I am an unattractive man.
+==========
+Notes from Underground (Fyodor Dostoevsky)
+- Your Highlight on page 482 | location 7950 | Added on Thursday, 28 June 2024 14:58:10
+
+inertia
+==========
+Notes from Underground (Fyodor Dostoevsky)
+- Your Highlight on page 492 | location 8120 | Added on Friday, 28 June 2024 15:15:21
+
+St. Petersburg
+==========
+The Trial (Franz Kafka)
+- Your Highlight on page 498 | location 8210 | Added on Saturday, 10 July 2024 14:54:06
+
+Someone must have slandered Josef K., for one morning he was arrested without having done anything truly wrong.
+==========
+The Trial (Franz Kafka)
+- Your Highlight on page 506 | location 8340 | Added on Sunday, 12 July 2024 15:11:17
+
+labyrinthine
+==========
+The Trial (Franz Kafka)
+- Your Highlight on page 516 | location 8510 | Added on Monday, 14 July 2024 16:28:28
+
+Prague
+==========
+Ulysses (James Joyce)
+- Your Highlight on page 522 | location 8600 | Added on Tuesday, 17 August 2024 15:07:13
+
+History is a nightmare from which I am trying to awake.
+==========
+Ulysses (James Joyce)
+- Your Highlight on page 530 | location 8730 | Added on Wednesday, 19 August 2024 16:24:24
+
+epiphany
+==========
+Ulysses (James Joyce)
+- Your Highlight on page 540 | location 8900 | Added on Thursday, 21 August 2024 17:41:35
+
+Dublin
 ==========`;
-// Load the sample into its own dedicated "Sample" library (reuse if it already exists)
+// Load the sample into its own dedicated "Sample" library (reuse if up to date, else rebuild)
 syncActiveLib();
 const existingSample=LIBRARIES.find(l=>l.isSample);
-if(existingSample){switchLibrary(existingSample.id);return;}
+if(existingSample){
+  if(existingSample.sampleVer===SAMPLE_VERSION){switchLibrary(existingSample.id);return;}
+  deleteLibrary(existingSample.id); // stale built-in sample — drop it and rebuild with the current books
+}
 createLibraryQuiet("Sample");
 ingest(sample,"Marginalia sample.txt",true);
 const SAMPLE_CATS=["quotes", "quotes", "vocab", "quotes", "vocab", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "vocab", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "topic", "vocab", "quotes", "vocab", "quotes", "quotes", "topic", "quotes", "vocab", "quotes", "quotes", "topic", "vocab", "quotes", "quotes", "quotes", "topic", "topic", "vocab", "quotes", "quotes", "topic", "quotes", "quotes", "vocab", "quotes", "topic", "quotes", "vocab", "quotes", "quotes", "quotes", "quotes", "topic", "vocab", "quotes", "topic", "quotes", "quotes", "quotes", "quotes", "topic", "topic", "vocab", "quotes", "topic", "vocab", "quotes", "topic", "quotes", "quotes", "vocab", "quotes", "quotes", "vocab", "quotes", "topic", "quotes", "vocab", "quotes", "topic", "quotes", "topic", "vocab"];
 STATE.clips.filter(c=>c.type!=="note").forEach((c,i)=>{if(SAMPLE_CATS[i]){c.cat=SAMPLE_CATS[i];c.catLocked=true;}});
+const freshSample=LIBRARIES.find(l=>l.isSample);if(freshSample)freshSample.sampleVer=SAMPLE_VERSION;
 saveState();render();renderDropPanel();}

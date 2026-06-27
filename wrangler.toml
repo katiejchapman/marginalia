@@ -1,0 +1,14 @@
+# Cloudflare Pages config for marginalia.
+# The site itself is still purely static (served from the repo root); this only
+# adds the serverless relay under functions/api/relay/.
+name = "marginalia"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+# Workers KV namespace for the ephemeral relay mailbox.
+# Local `wrangler pages dev` simulates this in .wrangler/state (the id below is
+# ignored locally). For production, create a real namespace and paste its id here
+# (or bind it in the Pages dashboard). See docs/RELAY.md.
+[[kv_namespaces]]
+binding = "RELAY"
+id = "REPLACE_WITH_PROD_NAMESPACE_ID"
