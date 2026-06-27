@@ -5,9 +5,11 @@ name = "marginalia"
 compatibility_date = "2024-09-23"
 pages_build_output_dir = "."
 
-# Workers KV namespace for the ephemeral relay mailbox (binding name: RELAY).
-# Production binding is configured in the Pages dashboard
-# (Settings → Functions → KV namespace bindings), so no [[kv_namespaces]] block
-# is needed here — a stale/placeholder id would only break the build.
-# Local dev provides the binding via the flag:  wrangler pages dev . --kv RELAY
+# Workers KV namespace for the ephemeral relay mailbox.
+# Cloudflare Pages manages bindings from this file (the dashboard UI is disabled
+# when wrangler.toml is present), so the production binding lives here.
+# Local dev can still override with:  wrangler pages dev . --kv RELAY
 # See docs/RELAY.md.
+[[kv_namespaces]]
+binding = "RELAY"
+id = "c95a8b0f8a2f4d4b99ef0efc0092e97e"
