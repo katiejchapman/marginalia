@@ -15,8 +15,9 @@ const HANDOFF = {
   timer: null,
   deadline: 0,
   busy: false,
+  received: 0,                    // running count this session (supports successive sends)
   POLL_MS: 2000,
-  TTL_MS: 600000,                 // ~10 min, matches the KV TTL on the relay (time to scan + correct text on the phone)
+  TTL_MS: 300000,                 // 5 min, matches the KV TTL on the relay (time to scan + correct text on the phone)
   QR_SRC: "https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js",
   qrLoading: null,
 };
@@ -32,7 +33,10 @@ function handoffToken(){
 }
 
 function handoffUrl(token){
-  return location.origin + "/scan?token=" + encodeURIComponent(token);
+  // Carry the desktop's theme so the phone page opens in the same light/dark mode.
+  const mode = (document.documentElement.getAttribute("data-mode") || "").toLowerCase();
+  const m = mode === "dark" ? "&mode=dark" : "";
+  return location.origin + "/scan?token=" + encodeURIComponent(token) + m;
 }
 
 // Lazily fetch the QR lib from a CDN on demand (like the app's other external
@@ -84,6 +88,7 @@ function startHandoff(){
   stopHandoffPolling();
   HANDOFF.token = handoffToken();
   HANDOFF.deadline = Date.now() + HANDOFF.TTL_MS;
+  HANDOFF.received = 0;
   const url = handoffUrl(HANDOFF.token);
 
   const link = document.getElementById("handoffLink");
@@ -142,12 +147,14 @@ async function pollHandoffOnce(){
       let payload = null;
       try { payload = await res.json(); } catch (e) { payload = null; }
       if (payload){
-        stopHandoffPolling();
-        HANDOFF.token = null;
+        // One-shot consumed the token's value; keep the SAME token live and keep
+        // polling so the phone can send more highlights in a row. The user closes
+        // the modal (✕) when done, or it expires at the deadline.
         const n = receiveHandoff(payload);
-        setHandoffStatus("✓ Received " + n + " highlight" + (n === 1 ? "" : "s") + " from your phone.", "ok");
-        if (typeof toast === "function") toast("Received " + n + " highlight" + (n === 1 ? "" : "s") + " from your phone.");
-        setTimeout(closeHandoff, 1600);
+        HANDOFF.received += n;
+        setHandoffStatus("✓ Added " + HANDOFF.received + " highlight" + (HANDOFF.received === 1 ? "" : "s")
+          + " — keep sending from your phone, or close this when done.", "ok");
+        if (typeof toast === "function") toast("Added " + n + " highlight" + (n === 1 ? "" : "s") + " from your phone.");
       }
     }
     // 204 (nothing yet) -> keep polling.
@@ -160,7 +167,8 @@ async function pollHandoffOnce(){
 
 // Ingest a handoff payload (one clip object or an array of them) through the
 // normal merge/dedup/persist path. Returns the number of new clips added.
-function receiveHandoff(payload){
+function receiveHandoff(payload, batch){
+  batch = batch || "handoff";
   const items = Array.isArray(payload) ? payload : [payload];
   // Don't merge into the built-in sample; start a real library if needed.
   if (typeof IS_SAMPLE !== "undefined" && IS_SAMPLE) createLibraryQuiet("My Library");
@@ -176,7 +184,7 @@ function receiveHandoff(payload){
       title: p.title || "Untitled", author: p.author || "",
       text: String(p.text).trim(), type: p.type || "highlight",
       page: p.page || "", loc: p.loc || "",
-      added: p.added || Date.now(), cat: p.cat || "", batch: "handoff",
+      added: p.added || Date.now(), cat: p.cat || "", batch: batch,
       edited: !!p.edited,                          // phone-corrected OCR text
     };
     c.fp = clipFp(c);
@@ -192,7 +200,8 @@ function receiveHandoff(payload){
   });
 
   if (added || changed){
-    IMPORT_LOG.unshift({ batch: "handoff", date: Date.now(), name: "Phone handoff",
+    IMPORT_LOG.unshift({ batch: batch, date: Date.now(),
+      name: batch === "manual" ? "Manual entry" : "Phone handoff",
       added, updated: changed, total: STATE.clips.length, fps: addedFps });
     IMPORT_LOG = IMPORT_LOG.slice(0, 100);
   }
@@ -210,4 +219,77 @@ function receiveHandoff(payload){
 // Local escape (handoff.js is self-contained; doesn't assume escHtml's presence).
 function escHandoff(s){
   return String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+}
+
+/* ---------- Add a highlight: type it in here, OR scan from your phone ----------
+ * The "Add highlight" buttons open this. Manual entry uses the SAME fields as the
+ * phone /scan page (text, book, author, page, tag, note) and is ingested through
+ * the same receiveHandoff path, tagged batch:"manual". */
+function buildAddModal(){
+  let ov = document.getElementById("addOverlay");
+  if (ov) return ov;
+  ov = document.createElement("div");
+  ov.id = "addOverlay";
+  ov.className = "handoff-overlay";
+  ov.innerHTML =
+    '<div class="handoff-modal add-modal" role="dialog" aria-label="Add a highlight">'
+    + '<button class="handoff-close" id="addClose" type="button" aria-label="Close">✕</button>'
+    + '<h3 class="handoff-h">Add a highlight</h3>'
+    + '<div class="add-form">'
+    +   '<label>Highlight<textarea id="amText" rows="4" placeholder="The highlighted passage"></textarea></label>'
+    +   '<div class="add-row">'
+    +     '<label>Book<input id="amTitle" type="text" placeholder="Book title"></label>'
+    +     '<label>Author<input id="amAuthor" type="text" placeholder="Author"></label>'
+    +   '</div>'
+    +   '<div class="add-row">'
+    +     '<label>Page<input id="amPage" type="text" inputmode="numeric" placeholder="e.g. 42"></label>'
+    +     '<label>Tag<select id="amTag"><option value="quotes">quote</option><option value="vocab">vocab</option><option value="topic">topic of interest</option><option value="none">untagged</option></select></label>'
+    +   '</div>'
+    +   '<label>Note (optional)<textarea id="amNote" rows="2" placeholder="A margin note to attach"></textarea></label>'
+    +   '<div class="add-msg" id="amMsg"></div>'
+    +   '<button class="btn" id="amAdd" type="button">Add to library</button>'
+    + '</div>'
+    + '<div class="add-or"><span>or</span></div>'
+    + '<button class="btn ghost" id="amFromPhone" type="button">📱 Scan from your phone</button>'
+    + '</div>';
+  document.body.appendChild(ov);
+  ov.addEventListener("click", e => { if (e.target === ov) closeAdd(); });
+  ov.querySelector("#addClose").onclick = closeAdd;
+  ov.querySelector("#amAdd").onclick = submitManual;
+  ov.querySelector("#amFromPhone").onclick = () => { closeAdd(); startHandoff(); };
+  return ov;
+}
+
+function openAddHighlight(){
+  const ov = buildAddModal();
+  ov.classList.add("show");
+  const t = document.getElementById("amText"); if (t) t.focus();
+}
+
+function closeAdd(){
+  const ov = document.getElementById("addOverlay");
+  if (ov) ov.classList.remove("show");
+}
+
+function submitManual(){
+  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ""; };
+  const text = g("amText");
+  const msg = document.getElementById("amMsg");
+  const fail = m => { if (msg){ msg.textContent = m; msg.className = "add-msg err"; } };
+  if (!text) return fail("Add some highlight text first.");
+  const page = g("amPage"), note = g("amNote");
+  const loc = page || ("manual" + Date.now());     // shared loc so a note attaches
+  const title = g("amTitle") || "Untitled", author = g("amAuthor");
+  const tagEl = document.getElementById("amTag"), tag = tagEl ? tagEl.value : "";
+  const highlight = { text, title, author, type: "highlight", page, loc, cat: tag, added: Date.now() };
+  const payload = note
+    ? [highlight, { text: note, title, author, type: "note", page, loc, added: Date.now() }]
+    : highlight;
+  const n = receiveHandoff(payload, "manual");
+  if (n){
+    closeAdd();
+    if (typeof toast === "function") toast("Added a highlight to your library.");
+  } else {
+    fail("That highlight is already in your library.");
+  }
 }

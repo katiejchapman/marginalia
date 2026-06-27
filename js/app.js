@@ -208,7 +208,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
       if(c.type==="note")bodyHtml=escHtml(c.text);
       else if(c.cat==="vocab"&&isVocabWord(c)){const wd=vocabTermOf(c);bodyHtml=escHtml(c.text).replace(escHtml(wd),`<span class="vocabword" data-vocab="${escAttr(wd)}">${escHtml(wd)}</span>`);}
       else bodyHtml=annotateTerms(c.text);
-      const editedTag=c.edited?'<span class="pill edited-pill" title="You edited this highlight">edited</span>':"";
+      const editedTag="";  // "edited" badge intentionally hidden (c.edited still tracked for ranking/re-import)
       const updateTag=c.incoming?`<button class="upd-pill" title="A re-import has different text — click to review">update available</button>`:"";
       div.dataset.cat=c.cat||"none";
       const attNotes=notesFor.get(c),notesHtml=attNotes?attNotes.map(n=>`<div class="clip-note"><span class="cn-lab">note</span>${escHtml(n.text)}</div>`).join(""):"";
@@ -236,20 +236,42 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
 function beginEdit(c,textEl,editBtn,div){
   if(div.classList.contains("editing"))return;
   div.classList.add("editing");
-  const original=c.text;
+  const original=c.text,origTitle=c.title||"",origAuthor=c.author||"";
   textEl.textContent=c.text;             // strip term spans while editing
   textEl.setAttribute("contenteditable","true");
   textEl.classList.add("editing-text");
+  // also let the user fix the book title & author (handy for scanned highlights)
+  let tIn=null,aIn=null;
+  if(c.type!=="note"){
+    const meta=div.querySelector(".meta");
+    const ed=document.createElement("div");ed.className="edit-meta";
+    ed.innerHTML=`<label>Book<input class="em-title" type="text" value="${escAttr(c.title||"")}"></label>`
+                +`<label>Author<input class="em-author" type="text" value="${escAttr(c.author||"")}"></label>`;
+    if(meta)meta.parentNode.insertBefore(ed,meta);else div.querySelector(".body").appendChild(ed);
+    tIn=ed.querySelector(".em-title");aIn=ed.querySelector(".em-author");
+  }
   textEl.focus();
   // place caret at end
   const r=document.createRange();r.selectNodeContents(textEl);r.collapse(false);
   const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
   editBtn.textContent="✓";editBtn.title="Save edit (Enter)";
+  let done=false;
   const finish=(commit)=>{
+    if(done)return;done=true;
     textEl.removeAttribute("contenteditable");textEl.classList.remove("editing-text");
-    div.classList.remove("editing");textEl.removeEventListener("keydown",onKey);
-    if(commit){const nt=textEl.textContent.replace(/\s+/g," ").trim();
-      if(nt&&nt!==original){c.text=nt;c.edited=true;c.fp=clipFp(c);if(!c.catLocked)c.cat=autoCategorize(c);saveState();}
+    div.classList.remove("editing");
+    textEl.removeEventListener("keydown",onKey);textEl.removeEventListener("blur",onBlur);
+    if(tIn){tIn.removeEventListener("keydown",onKey);tIn.removeEventListener("blur",onBlur);}
+    if(aIn){aIn.removeEventListener("keydown",onKey);aIn.removeEventListener("blur",onBlur);}
+    if(commit){
+      const nt=textEl.textContent.replace(/\s+/g," ").trim();
+      const nTitle=tIn?tIn.value.replace(/\s+/g," ").trim():origTitle;
+      const nAuthor=aIn?aIn.value.replace(/\s+/g," ").trim():origAuthor;
+      let dirty=false;
+      if(nt&&nt!==original){c.text=nt;dirty=true;}
+      if(nTitle!==origTitle){c.title=nTitle;dirty=true;}
+      if(nAuthor!==origAuthor){c.author=nAuthor;dirty=true;}
+      if(dirty){c.edited=true;c.fp=clipFp(c);if(!c.catLocked)c.cat=autoCategorize(c);saveState();}
     }
     render();
   };
@@ -257,8 +279,12 @@ function beginEdit(c,textEl,editBtn,div){
     if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();finish(true);}
     else if(e.key==="Escape"){e.preventDefault();finish(false);}
   };
-  textEl.addEventListener("keydown",onKey);
-  textEl.addEventListener("blur",()=>finish(true),{once:true});
+  // commit only when focus leaves the whole editing block (so clicking into the
+  // title/author inputs doesn't prematurely end the edit)
+  const onBlur=()=>{setTimeout(()=>{if(!done&&div.classList.contains("editing")&&!div.contains(document.activeElement))finish(true);},0);};
+  textEl.addEventListener("keydown",onKey);textEl.addEventListener("blur",onBlur);
+  if(tIn){tIn.addEventListener("keydown",onKey);tIn.addEventListener("blur",onBlur);}
+  if(aIn){aIn.addEventListener("keydown",onKey);aIn.addEventListener("blur",onBlur);}
   editBtn.onclick=()=>finish(true);
 }
 /* ---------- Review an incoming re-import that differs from your edit ---------- */

@@ -10,7 +10,10 @@
 (function(){
   var TESS_SRC = "https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js";
 
-  var token  = new URLSearchParams(location.search).get("token") || "";
+  var params = new URLSearchParams(location.search);
+  var token  = params.get("token") || "";
+  if ((params.get("mode") || "").toLowerCase() === "dark")
+    document.documentElement.setAttribute("data-mode", "dark");   // match desktop theme
   var scanBtn = document.getElementById("scanBtn");
   var imgInput = document.getElementById("imgInput");
   var status = document.getElementById("scanStatus");
@@ -26,10 +29,18 @@
   var rescanBtn = document.getElementById("rescanBtn");
   var coverBtn = document.getElementById("coverBtn");
   var coverInput = document.getElementById("coverInput");
+  var crop = document.getElementById("crop");
+  var cropStage = document.getElementById("cropStage");
+  var cropImg = document.getElementById("cropImg");
+  var cropBox = document.getElementById("cropBox");
+  var readBtn = document.getElementById("readBtn");
+  var cropCancel = document.getElementById("cropCancel");
   var tokBox = document.getElementById("tokBox");
 
   var previewUrl = null;            // object URL for the on-screen preview
   var tessLoading = null;
+  var cropUrl = null;               // object URL for the photo being cropped
+  var sel = null;                   // current selection rect, in stage CSS px
 
   function setStatus(msg, cls){ status.textContent = msg; status.className = "scan-status" + (cls ? " " + cls : ""); }
   function show(el){ el.classList.remove("hidden"); }
@@ -197,12 +208,83 @@
     try { imgInput.value = ""; } catch (e) {}
   }
 
+  // ----- crop step: show the photo, let the user drag a box around the passage,
+  // then send only that region to OCR. No box = whole photo. -----
+  function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
+
+  function showCrop(file){
+    if (cropUrl) { URL.revokeObjectURL(cropUrl); cropUrl = null; }
+    cropUrl = URL.createObjectURL(file);
+    cropImg.src = cropUrl;
+    sel = null; hide(cropBox);
+    hide(form); hide(preview); show(crop);
+    setStatus("Drag a box around the passage, then tap Read.", "busy");
+  }
+
+  function clearCrop(){
+    if (cropUrl) { URL.revokeObjectURL(cropUrl); cropUrl = null; }
+    cropImg.removeAttribute("src");
+    sel = null; hide(cropBox); hide(crop);
+  }
+
+  function drawBox(l, t, w, h){ cropBox.style.left = l + "px"; cropBox.style.top = t + "px"; cropBox.style.width = w + "px"; cropBox.style.height = h + "px"; }
+
+  var dragging = false, startX = 0, startY = 0;
+  function stagePoint(e){
+    var r = cropStage.getBoundingClientRect();
+    return { x: clamp(e.clientX - r.left, 0, r.width), y: clamp(e.clientY - r.top, 0, r.height), w: r.width, h: r.height };
+  }
+  cropStage.addEventListener("pointerdown", function(e){
+    if (crop.classList.contains("hidden")) return;
+    dragging = true; try { cropStage.setPointerCapture(e.pointerId); } catch (er) {}
+    var p = stagePoint(e); startX = p.x; startY = p.y;
+    drawBox(startX, startY, 0, 0); show(cropBox); e.preventDefault();
+  });
+  cropStage.addEventListener("pointermove", function(e){
+    if (!dragging) return;
+    var p = stagePoint(e);
+    var l = Math.min(startX, p.x), t = Math.min(startY, p.y), w = Math.abs(p.x - startX), h = Math.abs(p.y - startY);
+    drawBox(l, t, w, h); sel = { l: l, t: t, w: w, h: h, cw: p.w, ch: p.h }; e.preventDefault();
+  });
+  function endDrag(e){ if (dragging) { dragging = false; e.preventDefault(); } }
+  cropStage.addEventListener("pointerup", endDrag);
+  cropStage.addEventListener("pointercancel", endDrag);
+
+  // Crop the source image to the selection (mapped to natural pixels) and return
+  // a PNG blob. No/too-small selection -> the whole image.
+  function cropToBlob(){
+    return new Promise(function(res){
+      var natW = cropImg.naturalWidth, natH = cropImg.naturalHeight;
+      var dispW = cropImg.clientWidth || natW, dispH = cropImg.clientHeight || natH;
+      var sx = 0, sy = 0, sw = natW, sh = natH;
+      if (sel && sel.w > 8 && sel.h > 8){
+        var fx = natW / dispW, fy = natH / dispH;
+        sx = sel.l * fx; sy = sel.t * fy; sw = sel.w * fx; sh = sel.h * fy;
+      }
+      var cv = document.createElement("canvas");
+      cv.width = Math.max(1, Math.round(sw)); cv.height = Math.max(1, Math.round(sh));
+      cv.getContext("2d").drawImage(cropImg, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+      if (cv.toBlob) cv.toBlob(function(b){ res(b); }, "image/png");
+      else res(null);
+    });
+  }
+
   // ----- wire UI -----
   scanBtn.addEventListener("click", function(){ imgInput.click(); });
   imgInput.addEventListener("change", function(e){
     var f = e.target.files && e.target.files[0];
-    if (f) handleImage(f);
+    if (f) showCrop(f);                              // crop first, then OCR the region
   });
+  readBtn.addEventListener("click", async function(){
+    readBtn.disabled = true;
+    try {
+      var blob = await cropToBlob();
+      clearCrop();
+      if (blob) await handleImage(blob);
+      else setStatus("Couldn’t crop that image. Try a different photo.", "err");
+    } finally { readBtn.disabled = false; }
+  });
+  cropCancel.addEventListener("click", function(){ clearCrop(); setStatus(""); imgInput.click(); });
   rescanBtn.addEventListener("click", function(){
     discardImage(); hide(form); setStatus(""); imgInput.click();
   });
@@ -244,7 +326,10 @@
       if (res.ok){
         discardImage();                              // image never persisted/sent
         hide(form);
-        setStatus("✓ Sent! Check your desktop — it should appear in your library.", "ok");
+        // Reset for successive highlights; keep book/author for the next one.
+        fText.value = ""; fNote.value = ""; fPage.value = "";
+        sendBtn.disabled = false;
+        setStatus("✓ Sent! Scan another highlight, or you’re done.", "ok");
       } else {
         setStatus("Couldn’t send (server said " + res.status + "). The code may have expired — rescan.", "err");
         sendBtn.disabled = false;

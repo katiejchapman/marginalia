@@ -43,6 +43,20 @@
   .send-row{margin-top:18px}
   .rescan{margin-top:10px;width:100%;background:transparent;color:var(--muted);
     border:1px solid var(--rule);border-radius:7px;padding:10px}
+  /* crop-before-OCR */
+  .crop{margin-top:16px;text-align:center}
+  .crop-hint{font-size:13px;color:var(--muted);margin-bottom:8px}
+  .crop-stage{position:relative;display:inline-block;max-width:100%;line-height:0;
+    touch-action:none;-webkit-user-select:none;user-select:none}
+  .crop-stage img{max-width:100%;max-height:60vh;display:block;border:1px solid var(--rule);border-radius:6px}
+  .cropbox{position:absolute;border:2px solid var(--accent);background:rgba(201,168,74,.16);
+    box-shadow:0 0 0 9999px rgba(0,0,0,.30);pointer-events:none}
+  #readBtn{margin-top:12px}
+  /* dark mode — mirrors the desktop theme when opened with ?mode=dark */
+  :root[data-mode="dark"]{--paper:#1b1712;--ink:#e9dcc0;--accent:#c9a84a;--rule:#3a3026;--ok:#6fae78;--err:#e0857c;--muted:#a4906a}
+  [data-mode="dark"] .card{background:#241f17;box-shadow:0 10px 34px rgba(0,0,0,.55)}
+  [data-mode="dark"] .form textarea,[data-mode="dark"] .form input,[data-mode="dark"] .form select{background:#2a241b;color:var(--ink)}
+  [data-mode="dark"] .scan-sub,[data-mode="dark"] .rescan{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -56,6 +70,16 @@
     <div class="scan-status" id="scanStatus"></div>
 
     <div class="preview hidden" id="preview"></div>
+
+    <div class="crop hidden" id="crop">
+      <div class="crop-hint">Drag a box around the passage, then tap Read. (No box = read the whole photo.)</div>
+      <div class="crop-stage" id="cropStage">
+        <img id="cropImg" alt="page photo">
+        <div class="cropbox hidden" id="cropBox"></div>
+      </div>
+      <button class="big-btn" id="readBtn" type="button">Read selection</button>
+      <button class="rescan" id="cropCancel" type="button">Use a different photo</button>
+    </div>
 
     <div class="form hidden" id="form">
       <label for="fText">Highlight (edit to correct the scan)</label>

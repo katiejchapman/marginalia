@@ -255,6 +255,10 @@
   .upd-pill:hover{background:var(--accent-2);color:#fff}
   .clip.editing .text,.text.editing-text{outline:none;background:var(--paper-2);border-radius:4px;padding:8px 10px;box-shadow:inset 0 0 0 1px var(--accent);display:block;font-style:normal;color:var(--ink)}
   .text.editing-text{cursor:text}
+  .edit-meta{display:flex;gap:10px;margin:8px 0 2px;flex-wrap:wrap}
+  .edit-meta label{flex:1;min-width:120px;display:flex;flex-direction:column;gap:3px;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft)}
+  .edit-meta input{font-family:inherit;font-size:14px;color:var(--ink);background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:4px;padding:6px 8px}
+  .edit-meta input:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent)}
   .review-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;background:var(--panel);border:1px solid var(--rule-strong);border-left:3px solid var(--accent);border-radius:6px;padding:11px 16px;margin:18px 0 4px;font-family:var(--head);font-size:15px;color:var(--ink)}
   .review-banner b{color:var(--accent)}
 
@@ -892,3 +896,17 @@
   .handoff-status.ok{color:var(--cat-note)}
   .handoff-status.expired{color:var(--cat-quotes)}
   @keyframes handoffPulse{0%,100%{opacity:.3}50%{opacity:1}}
+  /* Add-highlight modal (manual entry) — same fields as the phone /scan page */
+  .add-modal{max-width:440px;text-align:left}
+  .add-form label{display:block;font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin:10px 0 4px}
+  .add-form textarea,.add-form input,.add-form select{width:100%;box-sizing:border-box;font-family:inherit;font-size:14px;color:var(--ink);background:var(--paper-2);border:1px solid var(--rule-strong);border-radius:5px;padding:8px 9px}
+  .add-form textarea{resize:vertical;line-height:1.45}
+  .add-form textarea:focus,.add-form input:focus,.add-form select:focus{outline:none;box-shadow:inset 0 0 0 1px var(--accent)}
+  .add-row{display:flex;gap:10px}
+  .add-row>label{flex:1}
+  .add-msg{min-height:15px;font-size:12px;margin-top:8px}
+  .add-msg.err{color:var(--cat-quotes)}
+  .add-form #amAdd{margin-top:12px;width:100%}
+  .add-or{display:flex;align-items:center;gap:10px;color:var(--ink-soft);font-size:12px;margin:14px 0 10px}
+  .add-or::before,.add-or::after{content:"";flex:1;height:1px;background:var(--rule)}
+  #amFromPhone{width:100%}

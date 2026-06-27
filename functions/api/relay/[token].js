@@ -9,7 +9,7 @@
 //
 // KV binding name: RELAY  (see wrangler.toml / docs/RELAY.md)
 
-const TTL_SECONDS = 600;          // ~10 min; KV minimum expirationTtl is 60s (matches the desktop poll window)
+const TTL_SECONDS = 300;          // 5 min; KV minimum expirationTtl is 60s (matches the desktop poll window)
 const MAX_BYTES = 8 * 1024;       // it's one highlight — a few KB is plenty
 
 export async function onRequestPost(context) {

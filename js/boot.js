@@ -84,7 +84,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();});
 
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
-document.querySelectorAll(".js-scan").forEach(b=>b.onclick=()=>{if(typeof startHandoff==="function")startHandoff();});
+document.querySelectorAll(".js-scan").forEach(b=>b.onclick=()=>{if(typeof openAddHighlight==="function")openAddHighlight();else if(typeof startHandoff==="function")startHandoff();});
 document.getElementById("manageBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
 fileInput.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{ingest(r.result,f.name);fileInput.value="";};r.readAsText(f);};
 fileJson.onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{importLibraryJson(r.result);fileJson.value="";};r.readAsText(f);};
