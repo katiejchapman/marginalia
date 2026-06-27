@@ -56,6 +56,9 @@ and showing/hiding `#pageLibrary`, `#pageTimeline`, `#pageConnections`,
 `#pageReview`:
 - **Library** — `render()` → `groupByBook()` → `renderShelf()` + per-book clip
   lists. `annotateTerms()` wraps notable terms with hover tooltips (`populateTip`).
+  Margin notes always render inline under the highlight they annotate. The
+  toolbar **notes** pill is a *filter*, not a show/hide: `NOTES_ONLY` off (default)
+  shows all highlights; on shows only highlights that have an attached note.
 - **Timeline** — `renderTimeline()`, a date-range slider over `added` dates.
 - **Explore data** — `renderExplore()` / `renderConnections()`, vocab & topic
   aggregations, decks-by-tag, evolution chart.

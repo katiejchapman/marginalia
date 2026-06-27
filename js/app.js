@@ -4,7 +4,7 @@ let REVIEW_LOG=[]; // past review sessions {date,total,acc,grades}
 let IMPORT_LOG=[]; // past imports {date,name,added,updated,total}
 let IS_SAMPLE=false; // true while the built-in sample is loaded
 let CAT_FILTER={vocab:1,quotes:1,topic:1,none:1};
-let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true,SHOW_NOTES=true,TL_GRAIN="week";
+let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true,NOTES_ONLY=false,TL_GRAIN="week";
 // NOTE: keys (vocab/quotes/topic) are DATA — never change them. Values are DISPLAY LABELS.
 // The quotes label is the singular "quote" everywhere. See CLAUDE.md "Tags vs labels".
 const CAT_LABELS={vocab:"vocab",quotes:"quote",topic:"topic of interest"};
@@ -164,7 +164,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     const notesFor=new Map(),attached=new Set();
     book.clips.forEach(c=>{if(c.type!=="note"){const ns=noteMap.get(locKey(c));if(ns&&ns.length){notesFor.set(c,ns);ns.forEach(n=>attached.add(n));}}});
     let clips=book.clips.filter(c=>{if(c.type==="note"&&attached.has(c))return false;
-      if(c.type==="note"&&!SHOW_NOTES)return false;
+      if(NOTES_ONLY&&c.type!=="note"&&!notesFor.has(c))return false;
       if(!CAT_FILTER[c.cat])return false;
       if(q){const ns=notesFor.get(c),noteHit=ns&&ns.some(n=>n.text.toLowerCase().includes(q));
         if(!(c.text.toLowerCase().includes(q)||book.title.toLowerCase().includes(q)||(book.author||"").toLowerCase().includes(q)||noteHit))return false;}return true;});
@@ -185,7 +185,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
       const editedTag=c.edited?'<span class="pill edited-pill" title="You edited this highlight">edited</span>':"";
       const updateTag=c.incoming?`<button class="upd-pill" title="A re-import has different text — click to review">update available</button>`:"";
       div.dataset.cat=c.cat||"none";
-      const attNotes=notesFor.get(c),notesHtml=(SHOW_NOTES&&attNotes)?attNotes.map(n=>`<div class="clip-note"><span class="cn-lab">note</span>${escHtml(n.text)}</div>`).join(""):"";
+      const attNotes=notesFor.get(c),notesHtml=attNotes?attNotes.map(n=>`<div class="clip-note"><span class="cn-lab">note</span>${escHtml(n.text)}</div>`).join(""):"";
       div.innerHTML=`<div class="loc">${locTxt}${c.type==="note"?'<br><span class="pill">note</span>':""}<div class="clip-actions"><button class="edit-btn" title="Edit this highlight" aria-label="Edit">✎</button><button class="del-btn" title="Delete this highlight" aria-label="Delete">✕</button></div></div>
         <div class="body"><span class="cat-line" title="${CAT_LABELS[c.cat]||"untagged"}"></span><p class="text">${bodyHtml}</p>${notesHtml}
           <div class="meta"><div class="catpick" role="group" aria-label="Set tag">
@@ -401,12 +401,20 @@ function renderTimeline(){
   const counts=new Array(buckets).fill(0).map(()=>({vocab:0,quotes:0,topic:0,none:0,total:0,night:0}));
   dated.forEach(c=>{const d=parseDate(c);let bi=Math.min(buckets-1,Math.floor((d-min)/bw));counts[bi][c.cat]=(counts[bi][c.cat]||0)+1;counts[bi].total++;const h=d.getHours();if(h>=20||h<6)counts[bi].night++;});
   const maxC=Math.max(1,...counts.map(b=>b.total));
-  const W=900,H=170,pad=4,bwid=(W-2*pad)/buckets;
+  // margin notes per bucket — drawn as verdigris ink-drops floating above the bars
+  const noteCounts=new Array(buckets).fill(0);
+  STATE.clips.forEach(c=>{if(c.type!=="note")return;const d=parseDate(c);if(!d||d<min||d>max)return;let bi=Math.min(buckets-1,Math.floor((d-min)/bw));noteCounts[bi]++;});
+  const maxN=Math.max(1,...noteCounts);
+  const W=900,H=170,pad=4,bwid=(W-2*pad)/buckets,mkHead=22; // mkHead reserves room above the bars for the ink-drops
   const col={vocab:"var(--cat-vocab)",quotes:"var(--cat-quotes)",topic:"var(--cat-topic)",none:"var(--cat-none)"};
   // stacked bar chart
-  let bars="";
-  counts.forEach((b,i)=>{const x=pad+i*bwid;let y=H;["topic","quotes","vocab","none"].forEach(k=>{const h=(b[k]/maxC)*(H-10);if(h>0){y-=h;bars+=`<rect x="${(x+1).toFixed(1)}" y="${y.toFixed(1)}" width="${(bwid-2).toFixed(1)}" height="${h.toFixed(1)}" fill="${col[k]}" rx="1"/>`;}});});
-  chart.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">${bars}</svg>`;
+  let bars="";const barTop=new Array(buckets).fill(H);
+  counts.forEach((b,i)=>{const x=pad+i*bwid;let y=H;["topic","quotes","vocab","none"].forEach(k=>{const h=(b[k]/maxC)*(H-10-mkHead);if(h>0){y-=h;bars+=`<rect x="${(x+1).toFixed(1)}" y="${y.toFixed(1)}" width="${(bwid-2).toFixed(1)}" height="${h.toFixed(1)}" fill="${col[k]}" rx="1"/>`;}});barTop[i]=y;});
+  // ink-drop: pointed top, round bottom; size scales with note count
+  let drops="";
+  noteCounts.forEach((n,i)=>{if(!n)return;const x=pad+i*bwid+bwid/2,s=3+(n/maxN)*5;let cy=barTop[i]-s-5;if(cy<s+1)cy=s+1;
+    drops+=`<path d="M ${x.toFixed(1)} ${(cy-s).toFixed(1)} C ${(x+s).toFixed(1)} ${(cy-s*0.1).toFixed(1)} ${(x+s*0.75).toFixed(1)} ${(cy+s).toFixed(1)} ${x.toFixed(1)} ${(cy+s).toFixed(1)} C ${(x-s*0.75).toFixed(1)} ${(cy+s).toFixed(1)} ${(x-s).toFixed(1)} ${(cy-s*0.1).toFixed(1)} ${x.toFixed(1)} ${(cy-s).toFixed(1)} Z" fill="var(--cat-note)"/>`;});
+  chart.innerHTML=`<svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="display:block">${bars}${drops}</svg>`;
   const fmt=d=>d.toLocaleDateString(undefined,{month:"short",year:"2-digit"});
   const fmtD=d=>`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`;
   axis.innerHTML=`<span>${fmt(min)}</span><span>${fmt(new Date((+min+ +max)/2))}</span><span>${fmt(max)}</span>`;
@@ -416,11 +424,12 @@ function renderTimeline(){
   const ttLab={topic:"topic",quotes:"quote",vocab:"vocab",none:"untagged"};
   chart.style.cursor="crosshair";
   chart.onmousemove=e=>{const r=chart.getBoundingClientRect();if(!r.width)return;let i=Math.floor((e.clientX-r.left)/r.width*buckets);i=Math.max(0,Math.min(buckets-1,i));const b=counts[i];
-    if(!b||!b.total){tlTip.style.display="none";return;}
+    if(!b||(!b.total&&!noteCounts[i])){tlTip.style.display="none";return;}
     const d0=new Date(+min+i*bw),d1=new Date(+min+(i+1)*bw-86400000);
     const dateTxt=fmtD(d0)+(+d1>+d0?" – "+fmtD(d1):"");
     const night=b.night>b.total/2;
     let rows="";["topic","quotes","vocab","none"].forEach(k=>{if(b[k])rows+=`<div class="tr"><span><i style="background:${col[k]}"></i>${ttLab[k]}</span><b>${b[k]}</b></div>`;});
+    if(noteCounts[i])rows+=`<div class="tr"><span><i style="background:var(--cat-note)"></i>notes</span><b>${noteCounts[i]}</b></div>`;
     tlTip.innerHTML=`<div class="tt-date">${dateTxt}${night?' <span class="tt-moon" title="most made at night">🌙</span>':''}</div>${rows}`;
     tlTip.style.display="block";
     let x=e.clientX+14,y=e.clientY-10;if(x+186>innerWidth)x=e.clientX-198;if(y<8)y=8;
@@ -746,11 +755,16 @@ function renderTimelineInsights(clips,start,end){const recap=document.getElement
   const authorCounts=new Map();clips.forEach(c=>{const a=(c.author||"").trim();if(a)authorCounts.set(a,(authorCounts.get(a)||0)+1);});
   const topAuthor=[...authorCounts.entries()].sort((a,b)=>b[1]-a[1])[0];
   const notesInRange=STATE.clips.filter(c=>{if(c.type!=="note")return false;const d=parseDate(c);return d&&d>=start&&d<=end;});
+  const noteByBook=new Map(),noteByAuthor=new Map();
+  notesInRange.forEach(n=>{const bt=cleanTitle(n.title);if(bt)noteByBook.set(bt,(noteByBook.get(bt)||0)+1);const a=(n.author||"").trim();if(a)noteByAuthor.set(a,(noteByAuthor.get(a)||0)+1);});
+  const topNoteBook=[...noteByBook.entries()].sort((a,b)=>b[1]-a[1])[0];
+  const topNoteAuthor=[...noteByAuthor.entries()].sort((a,b)=>b[1]-a[1])[0];
   recap.innerHTML=`<h2>Recap</h2><div class="tl-subtle">${fmt(start)} – ${fmt(end)}</div>
     <div class="recap-grid"><div class="recap-stat"><b>${total}</b><span>highlights</span></div><div class="recap-stat"><b>${books.length}</b><span>books</span></div><div class="recap-stat"><b>${pct(by("quotes"))}%</b><span>quote</span></div><div class="recap-stat"><b>${pct(by("topic"))}%</b><span>topics</span></div></div>
     <div class="tl-subtle"><b style="color:var(--ink)">Most highlighted:</b> ${escHtml(topTitle[0])} · ${topTitle[1]} highlight${topTitle[1]===1?"":"s"}</div>
     ${topAuthor?`<div class="tl-subtle"><b style="color:var(--ink)">Most highlighted author:</b> ${escHtml(topAuthor[0])} · ${topAuthor[1]} highlight${topAuthor[1]===1?"":"s"}</div>`:""}
-    ${notesInRange.length?`<div class="tl-subtle"><b style="color:var(--ink)">Margin notes:</b> ${notesInRange.length} note${notesInRange.length===1?"":"s"} written in this span</div>`:""}
+    ${topNoteBook?`<div class="tl-subtle"><b style="color:var(--ink)">Most annotated:</b> ${escHtml(topNoteBook[0])} · ${topNoteBook[1]} note${topNoteBook[1]===1?"":"s"}</div>`:""}
+    ${topNoteAuthor?`<div class="tl-subtle"><b style="color:var(--ink)">Most annotated author:</b> ${escHtml(topNoteAuthor[0])} · ${topNoteAuthor[1]} note${topNoteAuthor[1]===1?"":"s"}</div>`:""}
     <div class="recap-bars">${themes.length?themes.map(t=>`<div class="recap-bar"><span>${escHtml(t.term)}</span><i style="width:${Math.max(12,Math.round(t.count/(themes[0].count||1)*100))}%"></i><em>${t.count}</em></div>`).join(""):'<div class="tl-subtle">No recurring themes yet in this range.</div>'}</div>`;
   const evoHtml=themeEvolutionHtml(clips,start,end)||`<h2>Theme evolution</h2><p class="evo-copy tl-subtle">Not enough recurring cross-book themes in this range yet — as you highlight more, the shift in what you focus on will appear here.</p>`;
   // most-quoted laurel (idea 4) — sits under theme evolution

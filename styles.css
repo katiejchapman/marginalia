@@ -6,7 +6,7 @@
     --shelf-wood:#3a2a19;--shelf-edge:#160d04;--vignette:0.5;
   }
   [data-mode="light"]{
-    --paper:#e8dcc0;--paper-2:#e2d4b4;--panel:#dccaa4;--ink:#2e2014;--ink-soft:#574022;
+    --paper:#e8dcc0;--paper-2:#e2d4b4;--panel:#dccaa4;--ink:#2e2014;--ink-soft:#473213;
     --rule:#cbb78f;--rule-strong:#a98a57;--card:#f4ecd6;--paper-deep:#c2a877;
     --shadow:0 1px 0 rgba(255,250,235,.35),0 8px 22px -18px rgba(70,46,14,.42);
     --shelf-wood:#b8945f;--shelf-edge:#8a6a3a;--vignette:0.38;
@@ -19,7 +19,7 @@
     --accent:#c9a84a;--accent-2:#9c2a24;
     --highlighter:rgba(201,168,74,.26);--term-line:#c9a84a;
     --cat-vocab:#c9a84a;--cat-quotes:#b0382e;--cat-topic:#5a93d6;--cat-none:#7a6750;
-    --gold:#c9a84a;--lapis:#1f4d8f;--vermilion:#b0382e;--verd:#3f7a4a;
+    --gold:#c9a84a;--lapis:#1f4d8f;--vermilion:#b0382e;--verd:#3f7a4a;--cat-note:#336b3e;
     --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
     --title:"Fraunces",Georgia,serif;
     --head:"Newsreader",Georgia,serif;
@@ -57,7 +57,8 @@
   .ctrl-grid button{background:transparent;border:none;border-top:1px solid var(--rule);border-left:1px solid var(--rule);cursor:pointer;padding:5px 9px;color:var(--ink-soft);font-family:var(--mono);font-size:10px;letter-spacing:.02em;text-transform:lowercase;display:flex;align-items:center;gap:4px;transition:.12s;white-space:nowrap}
   .ctrl-grid button:nth-child(1),.ctrl-grid button:nth-child(2){border-top:none}
   .ctrl-grid button:nth-child(odd){border-left:none}
-  .ctrl-grid button[data-on="1"]{background:#c9a84a;color:#2a2014} /* match the brass lamp cursor in both modes */
+  .ctrl-grid button[data-on="1"]{background:#c9a84a;color:#2a2014;border-color:#c9a84a} /* match the brass lamp cursor in both modes; brass borders so no dark seam beside the active cell */
+  .ctrl-grid button[data-on="1"]+button{border-left-color:#c9a84a} /* the seam to the right of an active cell belongs to the inactive neighbour — brass it too */
 
   .tabs{display:flex;gap:4px;margin:16px 0 0;margin-top:auto;align-items:flex-end}
   /* similar shape to the page tabs but flat (no shading) with gold lettering, same serif font */
@@ -90,7 +91,7 @@
   .surprise .sp-inner{position:relative;z-index:3;padding:10px 13px 30px 38px}
   .surprise .sp-top{display:flex;justify-content:flex-end;align-items:baseline;font-family:var(--mono);font-size:9px;letter-spacing:.04em;color:var(--cat-soft)}
   .surprise .sp-text{font-family:var(--mono);font-size:11.5px;line-height:1.6;margin-top:2px;color:var(--cat-ink);display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
-  .surprise .sp-text.is-vocab{font-size:18px;letter-spacing:.04em;line-height:1.3;-webkit-line-clamp:2}
+  .surprise .sp-text.is-vocab{font-size:14px;letter-spacing:.04em;line-height:1.3;-webkit-line-clamp:2}
   .surprise .sp-title{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cat-ink);margin-top:10px;line-height:1.3}
   .surprise .sp-author{font-family:var(--mono);font-size:10.5px;color:var(--cat-soft);margin-top:1px}
   .surprise .sp-again{position:absolute;right:7px;bottom:7px;z-index:4;background:var(--cat-stock);border:1px solid var(--cat-soft);color:var(--cat-soft);border-radius:3px;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1;padding:0}
@@ -169,11 +170,7 @@
   .search input{width:100%;border:1px solid var(--rule);background:var(--card);border-radius:3px;padding:7px 12px 7px 28px;font-family:var(--body);font-size:13.5px;color:var(--ink)}
   .search:before{content:"\2315";position:absolute;left:9px;top:5px;font-size:16px;color:var(--ink-soft)}
   select.filter{border:1px solid var(--rule);background:var(--card);border-radius:3px;padding:6px 8px;font-family:var(--mono);font-size:10.5px;text-transform:lowercase;letter-spacing:.02em;color:var(--ink);font-weight:400}
-  .notes-pill{flex:0 0 auto;font-family:var(--mono);font-size:10px;letter-spacing:.02em;text-transform:lowercase;border:1px solid var(--rule);background:var(--card);color:var(--ink-soft);padding:4px 10px;border-radius:3px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;transition:.12s}
-  .notes-pill .np-icon{font-size:15px;line-height:1;color:var(--accent-2)}
-  .notes-pill[data-on="1"]{background:var(--accent);color:#2a2014;border-color:var(--accent)}
-  .notes-pill[data-on="1"] .np-icon{color:#2a2014}
-  .notes-pill[data-on="0"]{opacity:.6}
+  /* the notes filter is a chip like the tag chips (see .chip / .c-note) */
   .cats{display:flex;gap:14px;flex-wrap:wrap}
   .chip{font-family:var(--mono);font-size:11px;letter-spacing:.02em;text-transform:lowercase;border:none;background:transparent;color:var(--ink-soft);padding:4px 2px;border-radius:0;cursor:pointer;transition:.12s;display:flex;gap:7px;align-items:center;opacity:.48}
   .chip .dot{width:11px;height:11px;border-radius:2px;flex:none}
@@ -206,13 +203,10 @@
   .clip .text{font-size:19px;line-height:1.62;margin:0 0 10px;display:inline;padding:1px 0}
   .clip.is-note .text{background:none;font-style:italic;color:var(--accent-2);border-left:3px solid var(--accent-2);padding-left:12px;display:block}
   /* a Kindle note attached inline to the highlight it annotates */
-  .clip .clip-note{margin:9px 0 2px;padding:7px 12px;border-left:2px solid var(--accent-2);background:var(--paper-2);border-radius:0 5px 5px 0;font-family:var(--head);font-size:14px;font-style:italic;color:var(--ink-soft);line-height:1.5}
-  .clip .clip-note .cn-lab{font-family:var(--mono);font-style:normal;font-size:9px;text-transform:lowercase;letter-spacing:.04em;color:var(--accent-2);margin-right:8px}
+  .clip .clip-note{margin:9px 0 2px;padding:7px 12px;border-left:2px solid var(--cat-note);background:var(--paper-2);border-radius:0 5px 5px 0;font-family:var(--head);font-size:14px;font-style:italic;color:var(--ink-soft);line-height:1.5}
+  .clip .clip-note .cn-lab{font-family:var(--mono);font-style:normal;font-size:9px;text-transform:lowercase;letter-spacing:.04em;color:var(--cat-note);margin-right:8px}
   /* attached note is color-coded by the highlight's tag */
-  .clip[data-cat="vocab"] .clip-note{border-left-color:var(--cat-vocab)}.clip[data-cat="vocab"] .clip-note .cn-lab{color:var(--cat-vocab)}
-  .clip[data-cat="quotes"] .clip-note{border-left-color:var(--cat-quotes)}.clip[data-cat="quotes"] .clip-note .cn-lab{color:var(--cat-quotes)}
-  .clip[data-cat="topic"] .clip-note{border-left-color:var(--cat-topic)}.clip[data-cat="topic"] .clip-note .cn-lab{color:var(--cat-topic)}
-  .clip[data-cat="none"] .clip-note{border-left-color:var(--cat-none)}.clip[data-cat="none"] .clip-note .cn-lab{color:var(--cat-none)}
+  /* margin notes get their own verdigris colour (not tag-coded) — see --cat-note */
   /* library row density (adjustable) */
   #list.dens-compact .clip{padding:11px 0}
   #list.dens-compact .clip .text{font-size:16.5px;line-height:1.5;margin-bottom:6px}
@@ -261,8 +255,8 @@
   #tip .t-title{font-weight:600;margin-bottom:5px;color:var(--accent);font-family:var(--display);font-size:17px}
   #tip .t-load{color:var(--ink-soft);}
   #tip .t-thumb{float:right;margin:0 0 6px 10px;width:74px;height:74px;object-fit:cover;border-radius:3px;border:1px solid var(--rule)}
-  #tip .t-field{margin-bottom:6px;font-family:var(--mono);font-size:11px;line-height:1.5;color:var(--ink)}
-  #tip .t-field .fl{font-family:var(--mono);font-size:9px;text-transform:lowercase;letter-spacing:.06em;color:var(--accent);display:block}
+  #tip .t-field{margin-bottom:6px;font-family:var(--body);font-size:14px;line-height:1.5;color:var(--ink)}
+  #tip .t-field .fl{font-family:var(--mono);font-size:9px;text-transform:lowercase;letter-spacing:.06em;color:var(--accent);display:block;margin-bottom:1px}
   #tip a{color:var(--accent)}
   #tip .t-close{position:absolute;top:6px;right:8px;width:24px;height:24px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--card);color:var(--ink-soft);font-size:13px;line-height:1;cursor:pointer;padding:0}
   #tip .t-close:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
@@ -576,9 +570,10 @@
   .gate-corner.tl{left:42px;top:40px}
   .gate-corner.br{right:42px;bottom:36px}
   .gate-fleur{
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:54px;color:var(--gold);
-    text-shadow:0 2px 4px rgba(0,0,0,.7),0 0 24px rgba(201,168,74,.4);pointer-events:none
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:62px;height:62px;pointer-events:none;
+    filter:drop-shadow(0 2px 4px rgba(0,0,0,.7)) drop-shadow(0 0 18px rgba(201,168,74,.4))
   }
+  .gate-fleur svg{width:100%;height:100%;display:block}
   /* push each fleuron toward its door's outer side so the centre card never covers them */
   .gate-door.left .gate-fleur{left:30%}
   .gate-door.right .gate-fleur{left:70%}
@@ -705,6 +700,30 @@
   @keyframes flick{from{transform:scaleY(1) rotate(-.6deg)}to{transform:scaleY(1.09) rotate(.6deg)}}
 
   @media (max-width:620px){.clip{grid-template-columns:1fr;gap:6px}.clip .loc{padding-top:0}.wordmark{font-size:42px}.wordmark svg{width:62px;height:62px}}
+  /* ===== phones ===== */
+  @media (max-width:600px){
+    .wrap{padding:0 14px 110px}
+    header.mast{padding:18px 0 6px;gap:12px}
+    .mast .sub{font-size:14px;margin-top:6px}
+    /* controls + count share one row above the tabs instead of stacking far right */
+    .mast .topright{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:12px}
+    .ctrls{align-items:flex-start}
+    .mast .count{text-align:right}
+    .mast .count b{font-size:24px}
+    /* tabs wrap to two rows (scrolling would clip the Libraries dropdown) with comfortable tap targets */
+    .tabs{flex-wrap:wrap;margin-top:10px;gap:6px}
+    .tab{padding:10px 15px 8px;font-size:14px}
+    .manage-btn{padding:10px 13px 8px;font-size:14px}
+    .book-head{padding-left:22px}
+    .chip{padding:6px 3px}
+    .toolbar{gap:9px}
+    /* big section headings get unwieldy on a phone */
+    h1,.tl-stat b,.recap-stat b{line-height:1.1}
+    .theme-map-canvas,.theme-map-canvas svg,.theme-detail{min-height:0}
+    .theme-map-canvas svg{height:360px}
+  }
+  /* touch devices have no pointer to track — the oil-lamp cursor never moves, so hide it */
+  @media (pointer:coarse){#lampCursor,#lampHalo{display:none!important}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}.flame,#lampHalo{animation:none!important}}
 
   /* ===== merged from iter5: theme map, recap, memory search, divider ===== */
@@ -755,7 +774,13 @@
   .theme-hit{border-top:1px solid var(--rule);padding:10px 0;font-size:15px;line-height:1.45}
   .theme-hit .src{display:block;font-family:var(--head);color:var(--ink-soft);font-size:13px;margin-bottom:3px}
   .theme-legend{position:absolute;left:12px;top:12px;display:grid;gap:4px;font-family:var(--mono);font-size:10px;line-height:1.25;max-width:160px;color:var(--ink-soft);background:rgba(18,12,6,.5);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
-  [data-mode="light"] .theme-legend{background:rgba(250,244,228,.74)}
+  [data-mode="light"] .theme-legend{background:rgba(250,244,228,.74);color:var(--ink)}
+  /* light-mode theme map: tan nodes/faint edges blend into the cream canvas — give them firmer fills, darker edges, and ink text with no washed-out halo */
+  [data-mode="light"] .theme-map-canvas{background:radial-gradient(65% 55% at 50% 44%,rgba(168,127,36,.10),transparent 62%),#efe6cf}
+  [data-mode="light"] .theme-node .n-ring{fill:#e6d4a8;stroke:#9c7a2a;stroke-width:1.3}
+  [data-mode="light"] .theme-node[data-sel="1"] .n-ring{fill:#dcc488;stroke:#7c5e10;stroke-width:2}
+  [data-mode="light"] .theme-node text{fill:#2a1d0f;stroke:#efe6cf;stroke-width:3.4px}
+  [data-mode="light"] .theme-edge{stroke:#9c7a2a;stroke-opacity:.55}
   .conn-group.focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
   .memory-results{position:relative;margin-top:8px;display:none;flex-direction:column;gap:6px}
   .memory-results.show{display:flex}
