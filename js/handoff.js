@@ -204,18 +204,18 @@ function receiveHandoff(payload, batch){
     }
   });
 
-  if (added || changed){
-    IMPORT_LOG.unshift({ batch: batch, date: Date.now(),
-      name: batch === "manual" ? "Manual entry" : "Phone handoff",
-      added, updated: changed, total: STATE.clips.length, fps: addedFps });
-    IMPORT_LOG = IMPORT_LOG.slice(0, 100);
-  }
+  // Manual / phone entries add straight into the current library — they are NOT logged as "imports".
   if (typeof IS_SAMPLE !== "undefined") IS_SAMPLE = false;
   saveState();
 
-  const drop = document.getElementById("drop"); if (drop) drop.classList.add("hidden");
-  const app = document.getElementById("app"); if (app) app.classList.remove("hidden");
-  if (typeof showSurprise === "function") showSurprise();
+  // Only jump to the library when something new actually landed; otherwise stay put.
+  if (added){
+    const drop = document.getElementById("drop"); if (drop) drop.classList.add("hidden");
+    const app = document.getElementById("app"); if (app) app.classList.remove("hidden");
+    if (typeof showSurprise === "function") showSurprise();
+  } else if (typeof toast === "function"){
+    toast(changed ? "Updated existing highlight." : "Already in your library.");
+  }
   render();
   if (typeof renderDropPanel === "function") renderDropPanel();
   return added;
@@ -294,7 +294,11 @@ function submitManual(){
     : highlight;
   const n = receiveHandoff(payload, "manual");
   if (n){
-    closeAdd();
+    // clear every field so the next entry starts blank (modal stays open for successive adds)
+    ["amText","amTitle","amAuthor","amPage","amNote"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+    const tagEl2 = document.getElementById("amTag"); if (tagEl2) tagEl2.selectedIndex = 0;
+    if (msg){ msg.textContent = ""; msg.className = "add-msg"; }
+    const tf = document.getElementById("amText"); if (tf) tf.focus();
     if (typeof toast === "function") toast("Added a highlight to your library.");
   } else {
     fail("That highlight is already in your library.");

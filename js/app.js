@@ -1,4 +1,4 @@
-const STATE={clips:[],decks:[]};
+const STATE={clips:[],decks:[],bookMeta:{}}; // bookMeta: "title|author" -> {title,author,reading,kept} (currently-reading + empty-book persistence)
 const CAT_RULES=new Map(); // learned: normalized text/term -> category (persisted)
 let REVIEW_LOG=[]; // past review sessions {date,total,acc,grades}
 let IMPORT_LOG=[]; // past imports {date,name,added,updated,total}
@@ -106,15 +106,17 @@ function vocabTermOf(c){return strip(c.text).split(/\s+/)[0];}
 
 /* ---------- Term detection (validated vs all screenshots) ---------- */
 const CONNECTORS=/^(of|de|von|van|der|den|the|and|al|el|la|le|du|da|di|della|delle|ibn|bin|ben|y|in|out|on|at|to|et|for|nor|a|an)$/i;
+const COORD=/^(and|or|nor|y|et|&)$/i; // coordinating conjunctions never glue two names into one entity ("Redon and Moreau" = two topics)
+const TITLE_PREFIX=/^(st|ste|saint|mr|mrs|ms|mx|dr|sir|lord|lady|dame|pope|fr|father|sister|brother|rev|prof|gen|capt|col|sgt|king|queen|prince|princess|emperor|empress)$/i; // honorific/title that attaches to the following name ("St Mark")
 const COMMON_CAP=/^(January|February|March|April|May|June|July|August|September|October|November|December|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|God|Mr|Mrs|Ms|Dr|St|I|A|An|The)$/i;
-const SENTENCE_LEAD_STOP=/^(the|a|an|but|and|or|if|when|while|this|that|these|those|he|she|it|they|we|in|on|at|for|to|of|as|my|his|her|their|its|our|your|with|from|by|was|were|is|are|be|been|being|not|no|so|then|than|because|which|who|whom|whose|what|how|why|where)$/i;
+const SENTENCE_LEAD_STOP=/^(the|a|an|but|and|or|if|when|while|this|that|these|those|he|she|it|they|we|in|on|at|for|to|of|as|my|his|her|their|its|our|your|with|from|by|was|were|is|are|be|been|being|not|no|so|then|than|because|which|who|whom|whose|what|how|why|where|however|therefore|thus|hence|moreover|meanwhile|nevertheless|nonetheless|perhaps|maybe|indeed|instead|finally|sometimes|often|always|never|usually|generally|certainly|clearly|obviously|here|there|now|today|later|once|even|only|still|yet|also|although|though|since|unless|until|after|before|during|despite|among|between|both|either|neither|each|every|many|most|much|some|few|several|another|such|like|first|next|last|people|men|women|children|man|woman|life|death|love|war|peace|time|history|nature|world|society|things|something|nothing|everything|someone|everyone|nobody|one|ones|others|day|days|year|years|part|kind|sort|number|fact|case|point|way|ways|word|words|name|names|thing)$/i;
 const ATTACH_NOUN=/^(shrine|war|temple|revolution|dynasty|empire|school|movement|period|era|society|order|rebellion|uprising|sutra|prize|river|mountain|sea|castle|palace|cathedral|abbey)$/i;
 function titleCase(s){return s.replace(/\w\S*/g,w=>w.charAt(0).toUpperCase()+w.slice(1).toLowerCase());}
 function isAllCaps(w){return /^[A-ZÀ-Þ][A-ZÀ-Þ'’.\-]*$/.test(w)&&/[A-ZÀ-Þ]{2,}/.test(w);}
 function isCapCore(w){if(!w)return false;return (/^[A-ZÀ-Þ][a-zà-ÿ'’\-]+$/.test(w))||/^[A-Z][a-zà-ÿ'’]+(-[A-ZÀ-Þ][a-zà-ÿ'’]+)+$/.test(w)||/^[A-Z]'[A-Z]/.test(w)||/^[A-Z][a-z]+[A-Z]/.test(w)||/^[A-Z]\.?$/.test(w)||isAllCaps(w);}
 function isInitial(w){return /^[A-Z]\.?$/.test(w)&&w.replace(".","").length===1;}
 function lookupForm(p){p=p.trim();p=p.replace(/-([a-z][a-z]+)$/,"");p=p.split(/[—–]/)[0];
-  p=p.replace(/^[("'“‘\s]+|[)"'”’\s]+$/g,"").replace(/[,.;:!?]+$/,"").replace(/['’]s\b/g,"");
+  p=p.replace(/^[("'“‘\s]+|[)"'”’\s]+$/g,"").replace(/[,.;:!?]+$/,"").replace(/['’]s$/,""); // strip only a trailing possessive; keep mid-phrase ("Dürer's Melancholia") so fetchWiki can split possessor/work
   p=p.replace(/\s+/g," ").trim();
   if(/^[^a-z]+$/.test(p)&&/[A-Z]/.test(p))p=titleCase(p);
   p=p.replace(/\s(Of|The|And|De|Von|Van|Der|Den|Du|Da|Di|La|Le|El|In|On|At|To)\s/g,(m,w)=>" "+w.toLowerCase()+" ");
@@ -130,6 +132,20 @@ function groupByBook(){const map=new Map();STATE.clips.forEach(c=>{const ct=clea
   // default shelf/library order: most recently read first; undated books fall to the end
   books.sort((a,b)=>(b.lastDate||-Infinity)-(a.lastDate||-Infinity)||a.title.localeCompare(b.title));
   return books;}
+// ---- per-book metadata (currently-reading flag, empty-book persistence) ----
+function bookKey(t,a){return cleanTitle(t)+"|"+(a||"");}
+function bmGet(t,a){return (STATE.bookMeta||{})[bookKey(t,a)];}
+function bmSet(t,a,patch){STATE.bookMeta=STATE.bookMeta||{};const k=bookKey(t,a);const m=STATE.bookMeta[k]||(STATE.bookMeta[k]={title:cleanTitle(t),author:a||""});Object.assign(m,patch);return m;}
+function bmPrune(t,a){const k=bookKey(t,a),m=(STATE.bookMeta||{})[k];if(m&&!m.reading&&!m.kept)delete STATE.bookMeta[k];}
+function toggleReading(t,a){const m=bmGet(t,a);bmSet(t,a,{reading:!(m&&m.reading)});bmPrune(t,a);saveState();render();}
+// groupByBook plus empty-but-kept books (pinned to the top, newest-emptied first), each annotated with its reading flag
+function booksWithEmpty(){const books=groupByBook();const have=new Set(books.map(b=>b.title+"|"+(b.author||"")));
+  const empties=[];
+  Object.values(STATE.bookMeta||{}).forEach(m=>{if(m.kept&&!have.has(m.title+"|"+(m.author||"")))empties.push({title:m.title,author:m.author||"",clips:[],key:slug(m.title),firstDate:null,lastDate:null,empty:true,keptAt:m.keptAt||0});});
+  empties.sort((a,b)=>b.keptAt-a.keptAt);
+  const all=[...empties,...books]; // empty books stay at the top instead of sinking to the undated bottom
+  all.forEach(b=>{const m=bmGet(b.title,b.author);b.reading=!!(m&&m.reading);});
+  return all;}
 function pageNum(c){const v=c.page||c.loc||"0";const n=parseInt((""+v).split(/[-–]/)[0],10);return isNaN(n)?1e9:n;}
 function shade(hex,p){const n=parseInt(hex.slice(1),16);let r=(n>>16)+p,g=((n>>8)&255)+p,b=(n&255)+p;
   r=Math.max(0,Math.min(255,r));g=Math.max(0,Math.min(255,g));b=Math.max(0,Math.min(255,b));return "#"+(r<<16|g<<8|b).toString(16).padStart(6,"0");}
@@ -151,13 +167,29 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
     const baseW=46+Math.min(26,Math.round(b.clips.length*0.9)); // 46–72px (thicker = more highlights)
     sp.style.setProperty("--spine-h",Math.round(baseH*mult)+"px");
     sp.style.setProperty("--spine-w",Math.round(baseW*mult)+"px");
-    sp.className="book-spine "+sv;
-    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
-    sp.title=b.title+(b.author?" — "+b.author:"");
+    sp.className="book-spine "+sv+(b.reading?" reading":"");
+    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div>${b.reading?'<div class="reading-flag" title="Currently reading"></div>':""}<div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
+    sp.title=b.title+(b.author?" — "+b.author:"")+(b.reading?" · currently reading":"");
     sp.onclick=()=>{const el=document.getElementById("book-"+b.key);if(el){el.classList.remove("collapsed");el.scrollIntoView({behavior:"smooth"});}};
+    // hovering a book slides its same-row neighbors aside (no overlap) so you can sweep across; edge books expand left and push the preceding ones
+    const slide=on=>{const expW=size==="s"?118:size==="l"?158:140,delta=Math.max(0,expW-sp.offsetWidth);
+      const left=sp.classList.contains("expand-left"),dir=left?-1:1,myBottom=sp.offsetTop+sp.offsetHeight;
+      for(let n=left?sp.previousElementSibling:sp.nextElementSibling;n;n=left?n.previousElementSibling:n.nextElementSibling){
+        if(!n.classList||!n.classList.contains("book-spine"))continue;if(n.style.display==="none")continue;
+        if(Math.abs((n.offsetTop+n.offsetHeight)-myBottom)>6)break; // stop at the row boundary
+        n.style.transform=on?`translateX(${dir*delta}px)`:"";}};
+    sp.addEventListener("mouseenter",()=>slide(true));
+    sp.addEventListener("mouseleave",()=>slide(false));
     shelf.appendChild(sp);spineEls.push(sp);});
   const tog=document.getElementById("bookSizeToggle");if(tog)tog.querySelectorAll("button").forEach(btn=>btn.dataset.on=btn.dataset.sz===BOOK_SIZE?1:0);
-  paginateShelf(shelf,spineEls);}
+  paginateShelf(shelf,spineEls);setExpandDir(shelf,spineEls);}
+// Books whose expanded cover would overrun the right edge expand leftward instead (no clipping/glitch at edges or when the page is full)
+function setExpandDir(shelf,spineEls){
+  if(!shelf||shelf.clientWidth<=0)return;
+  const cs=getComputedStyle(shelf),padR=parseFloat(cs.paddingRight)||0;
+  const right=shelf.clientWidth-padR,expW=160; // widest hovered cover (~158px) + slack
+  spineEls.forEach(el=>{if(el.style.display==="none"){el.classList.remove("expand-left");return;}
+    el.classList.toggle("expand-left",el.offsetLeft+expW>right);});}
 // Cap the shelf at 2 rows; if the books overflow, hide the rest and add a square flip arrow that pages through.
 function paginateShelf(shelf,spineEls){
   shelf.classList.remove("paged");
@@ -180,7 +212,7 @@ function paginateShelf(shelf,spineEls){
   btn.onclick=e=>{e.stopPropagation();SHELF_PAGE=(SHELF_PAGE+1)%pages;renderShelf(SHELF_BOOKS);};
   shelf.appendChild(btn);}
 function render(){const list=document.getElementById("list");list.innerHTML="";const q=QUERY.toLowerCase();
-  const books=groupByBook();
+  const books=booksWithEmpty();
   if(SORT==="author")books.sort((a,b)=>(a.author||"￿").localeCompare(b.author||"￿")||a.title.localeCompare(b.title));
   renderShelf(books);let shown=0;
   books.forEach((book,bi)=>{const color=bookColor(bi);
@@ -198,12 +230,30 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     else if(SORT==="date")clips.sort((a,b)=>{const da=parseDate(a),db=parseDate(b);return (da?+da:Infinity)-(db?+db:Infinity)||pageNum(a)-pageNum(b);});
     else if(SORT==="len")clips.sort((a,b)=>b.text.length-a.text.length);
     else if(SORT==="tag")clips.sort((a,b)=>(CAT_ORDER[a.cat]-CAT_ORDER[b.cat])||(pageNum(a)-pageNum(b)));
-    if(!clips.length)return;shown+=clips.length;
-    const sec=document.createElement("section");sec.className="book";sec.id="book-"+book.key;
-    sec.innerHTML=`<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="title">${escHtml(book.title)}</span>${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}<span class="tally">${clips.length} ✦</span><span class="caret">▾</span></div><div class="clips"></div>`;
+    const isEmpty=book.empty&&!book.clips.length;
+    if(!clips.length&&!isEmpty)return;shown+=clips.length;
+    const sec=document.createElement("section");sec.className="book"+(book.reading?" reading":"")+(isEmpty?" empty-book":"");sec.id="book-"+book.key;
+    const readBtn=`<button class="book-reading" data-on="${book.reading?1:0}" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading">reading</button>`;
+    const readDot=`<span class="reading-dot${book.reading?" on":""}" aria-hidden="true" title="Currently reading"></span>`;
+    const bookmark=`<button class="book-bookmark${book.reading?" on":""}" type="button" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading"></button>`;
+    const tally=isEmpty?`<span class="tally">empty</span>`:`<span class="tally">${clips.length} ✦</span>`;
+    sec.innerHTML=`${bookmark}<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="title">${escHtml(book.title)}</span>${readDot}${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}${tally}${readBtn}<button class="book-del" title="${isEmpty?"Delete this empty book":"Delete this book and all its highlights"}" aria-label="Delete book">✕</button><span class="caret">▾</span></div><div class="clips"></div>`;
     const wrap=sec.querySelector(".clips");sec.querySelector(".book-head").onclick=()=>sec.classList.toggle("collapsed");
+    sec.querySelector(".book-reading").onclick=e=>{e.stopPropagation();toggleReading(book.title,book.author);};
+    sec.querySelector(".book-bookmark").onclick=e=>{e.stopPropagation();toggleReading(book.title,book.author);};
+    sec.querySelector(".book-del").onclick=e=>{e.stopPropagation();
+      const removed=STATE.clips.filter(c=>cleanTitle(c.title)===book.title&&(c.author||"")===(book.author||""));
+      const warn=isEmpty?`Delete the empty book “${book.title}”? You can undo.`:`Delete “${book.title}” and all ${removed.length} of its highlight${removed.length===1?"":"s"}? You can undo.`;
+      if(!confirm(warn))return;
+      const key=bookKey(book.title,book.author),metaCopy=(STATE.bookMeta||{})[key]?Object.assign({},STATE.bookMeta[key]):null;
+      STATE.clips=STATE.clips.filter(c=>!(cleanTitle(c.title)===book.title&&(c.author||"")===(book.author||"")));
+      if(STATE.bookMeta)delete STATE.bookMeta[key];
+      saveState();render();
+      toastUndo(`Deleted “${book.title}”.`,()=>{removed.forEach(c=>STATE.clips.push(c));if(metaCopy){STATE.bookMeta=STATE.bookMeta||{};STATE.bookMeta[key]=metaCopy;}saveState();render();});};
+    if(isEmpty){wrap.innerHTML='<div class="empty-book-note">no highlights</div>';list.appendChild(sec);return;}
     clips.forEach(c=>{const div=document.createElement("div");div.className="clip"+(c.type==="note"?" is-note":"");div.dataset.fp=c.fp||clipFp(c);
-      const locTxt=c.page?`<span class="pg">${escHtml(c.page)}</span>`:c.loc?`<span class="pg">${escHtml(c.loc)}</span>`:"—";
+      const showLoc=c.loc&&!/^(manual|scan|handoff)/i.test(c.loc)?c.loc:"";  // hide synthetic locs (manual/scan/handoff have no real page)
+      const locTxt=c.page?`<span class="pg">${escHtml(c.page)}</span>`:showLoc?`<span class="pg">${escHtml(showLoc)}</span>`:"—";
       let bodyHtml;
       if(c.type==="note")bodyHtml=escHtml(c.text);
       else if(c.cat==="vocab"&&isVocabWord(c)){const wd=vocabTermOf(c);bodyHtml=escHtml(c.text).replace(escHtml(wd),`<span class="vocabword" data-vocab="${escAttr(wd)}">${escHtml(wd)}</span>`);}
@@ -428,7 +478,10 @@ function truncTitle(t,max){t=t||"";return t.length>max?t.slice(0,max-1).replace(
 function cleanAuthor(raw){let a=(raw||"").trim();if(!a)return "";
   a=a.replace(/\s*[\(\[][^\)\]]*[\)\]]\s*$/,"").trim(); // drop trailing (...) notes
   // "Last, First" -> "First Last" (only when a single comma and no 'and'/'&')
-  if(/^[^,]+,\s*[^,]+$/.test(a)&&!/\band\b|&/i.test(a)){const [last,first]=a.split(",");a=(first.trim()+" "+last.trim()).trim();}
+  if(/^[^,]+,\s*[^,]+$/.test(a)&&!/\band\b|&/i.test(a)){const [last,first]=a.split(",");const f=first.trim(),l=last.trim();
+    // some Kindle exports store "Mar\u00edas, Javier Mar\u00edas" \u2014 don't re-append a surname the first part already carries
+    a=new RegExp("\\b"+l.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"$","i").test(f)?f:(f+" "+l).trim();}
+  a=a.replace(/\b(\S+)\s+\1\b/gi,"$1"); // collapse an immediately repeated word ("Marias Marias" -> "Marias")
   a=a.replace(/\s{2,}/g," ").replace(/[;:,.\-\u2013\u2014\s]+$/,"").trim();
   return a;}
 function slug(s){return (s+"").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40);}
@@ -449,10 +502,14 @@ function deleteHighlight(c){if(STATE.clips.indexOf(c)<0)return;
   // snapshot original positions so undo can restore everything in place
   const removed=[c,...orphanNotes].map(x=>({clip:x,idx:STATE.clips.indexOf(x)})).sort((a,b)=>a.idx-b.idx);
   removed.forEach(r=>{const i=STATE.clips.indexOf(r.clip);if(i>=0)STATE.clips.splice(i,1);});
+  // deleting a book's last highlight keeps the book around (empty) instead of dropping it
+  if(!STATE.clips.some(o=>bk(o)===b))bmSet(c.title,c.author,{kept:true,keptAt:Date.now()});
   saveState();render();
   const nN=orphanNotes.length;
   toastUndo("Highlight deleted"+(nN?` and ${nN} note${nN===1?"":"s"}`:"")+".",()=>{
-    removed.forEach(r=>STATE.clips.splice(Math.min(r.idx,STATE.clips.length),0,r.clip));saveState();render();});}
+    removed.forEach(r=>STATE.clips.splice(Math.min(r.idx,STATE.clips.length),0,r.clip));
+    const m=bmGet(c.title,c.author);if(m){m.kept=false;bmPrune(c.title,c.author);} // book has clips again — drop the empty-keep flag
+    saveState();render();});}
 
 /* ---------- Timeline ---------- */
 function parseDate(c){if(!c.added)return null;const d=new Date(c.added);return isNaN(d)?null:d;}
@@ -685,25 +742,51 @@ function renderExplore(){
 }
 // Reading pace — how long you spent in each book (span between first & last highlight)
 function renderPaceStats(){const box=document.getElementById("paceStats");if(!box)return;
-  const books=groupByBook().map(b=>{
+  const books=groupByBook().map((b,i)=>{
     const dates=b.clips.map(parseDate).filter(Boolean).sort((x,y)=>x-y);
     if(dates.length<2)return null;
     const days=Math.max(1,Math.round((dates[dates.length-1]-dates[0])/86400000));
-    return {title:b.title,author:b.author,days,first:dates[0],last:dates[dates.length-1],n:b.clips.length};
+    return {title:b.title,author:b.author,days,first:dates[0],last:dates[dates.length-1],n:b.clips.length,color:bookColor(i)}; // colour matches the bookshelf spine/cover
   }).filter(Boolean);
   if(!books.length){box.innerHTML='<div class="empty">Need at least two timestamped highlights in a book to measure reading pace.</div>';return;}
-  const fmt=d=>`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`;
   const dur=n=>n>=14?`${Math.round(n/7)} wk${Math.round(n/7)===1?"":"s"}`:`${n} day${n===1?"":"s"}`;
-  const byLong=[...books].sort((a,b)=>b.days-a.days);
-  const byShort=[...books].sort((a,b)=>a.days-b.days);
+  const fmtMon=d=>d.toLocaleString("en",{month:"short"})+" ’"+(""+d.getFullYear()).slice(2);
+  const byLong=[...books].sort((a,b)=>b.days-a.days).slice(0,6);
+  const byShort=[...books].sort((a,b)=>a.days-b.days).slice(0,6);
   const avg=Math.round(books.reduce((s,b)=>s+b.days,0)/books.length);
-  const row=b=>`<div class="pace-row"><div class="pace-meta"><span class="pace-title">${escHtml(b.title)}</span>${b.author?`<span class="pace-author">${escHtml(b.author)}</span>`:""}</div><div class="pace-dur"><b>${dur(b.days)}</b><span>${fmt(b.first)} – ${fmt(b.last)}</span></div></div>`;
-  const sect=(head,sub,arr)=>`<div class="pace-sect"><div class="pace-head">${head}${sub?`<span class="pace-sub">${sub}</span>`:""}</div>${arr.slice(0,6).map(row).join("")}</div>`;
-  box.innerHTML=`
-    <div class="pace-lead">Reading pace is the span between a book's first and last highlight. Average span: <b>${dur(avg)}</b> across ${books.length} book${books.length===1?"":"s"}.</div>
-    ${sect("Stayed with you longest","",byLong)}
-    ${sect("Read in one sitting","",byShort)}
-    <div class="pace-note">Publication year isn't included in Kindle exports, so it can't be charted here.</div>`;
+  // ---- scatter: x = date finished (last highlight), y = days spent; color-coded dots, hover reveals the bookshelf front cover ----
+  const maxD=Math.max(...books.map(b=>b.days));
+  const fins=books.map(b=>+b.last),minX=Math.min(...fins),maxX=Math.max(...fins),spanX=(maxX-minX)||1;
+  const xPct=t=>8+((t-minX)/spanX)*88, yPct=d=>90-(d/maxD)*82;
+  const pt=b=>{const x=xPct(+b.last).toFixed(1),y=yPct(b.days),yf=y.toFixed(1),edge=(+b.last-minX)/spanX; // edge>0.7 => flip cover left so it doesn't overflow
+    return `<div class="pace-stem" style="left:${x}%;top:${yf}%;height:${(90-y).toFixed(1)}%"></div>`
+      +`<div class="pace-pt${edge>0.72?" pin-left":edge<0.28?" pin-right":""}" style="left:${x}%;top:${yf}%" title="${escAttr(b.title+(b.author?" — "+b.author:"")+" · "+dur(b.days)+", finished "+fmtMon(b.last))}">`
+      +`<span class="pace-dot" style="background:${b.color}"></span>`
+      +`<div class="pace-cover" style="background:${b.color}"><div class="pc-cloth"></div><div class="pc-orn"></div>`
+      +`<div class="pc-title">${escHtml(truncTitle(b.title,30))}</div>`
+      +(b.author?`<div class="pc-author">${escHtml(b.author)}</div>`:"")+`</div></div>`;};
+  const yticks=[0,.25,.5,.75,1].map(f=>{const v=Math.round(maxD*(1-f)),top=(f*90).toFixed(1);
+    return `<div class="pace-gl" style="top:${top}%"></div><div class="pace-yl" style="top:${top}%">${dur(v)}</div>`;}).join("");
+  // x ticks: one per month across the finished-date range (thinned if the span is long)
+  const m0=new Date(minX);m0.setDate(1);m0.setHours(0,0,0,0);
+  let months=[];for(let d=new Date(m0),g=0;+d<=maxX&&g<120;d.setMonth(d.getMonth()+1),g++)months.push(new Date(d));
+  if(+months[months.length-1]<maxX){const e=new Date(maxX);e.setDate(1);months.push(e);}
+  const step=Math.ceil(months.length/12)||1;
+  const xticks=months.filter((_,i)=>i%step===0).map(d=>{const x=Math.max(2,Math.min(98,xPct(Math.max(minX,Math.min(maxX,+d)))));
+    return `<span class="pace-xt" style="left:${x.toFixed(1)}%">${d.toLocaleString("en",{month:"short"})}${d.getMonth()===0?" ’"+(""+d.getFullYear()).slice(2):""}</span>`;}).join("");
+  const scatter=`<div class="pace-scatter-wrap">
+      <div class="pace-yaxis-lab">days spent reading</div>
+      <div class="pace-scatter">${yticks}${books.map(pt).join("")}</div>
+      <div class="pace-xticks">${xticks}</div>
+      <div class="pace-xaxis-lab">date finished</div>
+    </div>`;
+  const lol=b=>{const p=Math.max(6,b.days/maxD*100).toFixed(1);
+    return `<div class="lol"><span class="lol-nm" title="${escAttr(b.title)}">${escHtml(b.title)}</span><span class="lol-track"><span class="lol-fill" style="width:${p}%"></span><span class="lol-dot" style="left:${p}%;background:${b.color}"></span></span><span class="lol-dur">${dur(b.days)}</span></div>`;};
+  const lists=`<div class="pace-lists">
+      <div class="pace-col"><div class="pace-col-h">Page-turners</div>${byShort.map(lol).join("")}</div>
+      <div class="pace-col"><div class="pace-col-h">Slow burners</div>${byLong.map(lol).join("")}</div>
+    </div>`;
+  box.innerHTML=`<div class="pace-lead">Average read time: <b>${dur(avg)}</b> across ${books.length} book${books.length===1?"":"s"}.</div>${scatter}${lists}`;
 }
 function normThemeTerm(s){return (s||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();}
 function topThemesFromClips(clips,limit=5,minBooks=1){const freq=new Map();clips.forEach(c=>{if(c.type==="note")return;
@@ -772,7 +855,7 @@ function renderThemeMap(){const box=document.getElementById("wordCloud");if(!box
   nodes.forEach((n,i)=>{const angle=(Math.PI*2*i/nodes.length)-Math.PI/2;const ring=i<6?150:212;n.x=cx+Math.cos(angle)*ring;n.y=cy+Math.sin(angle)*ring;n.r=14+Math.round(Math.pow(n.count/maxCount,.72)*28);});
   const nodeById=Object.fromEntries(nodes.map(n=>[n.id,n]));const maxEdge=Math.max(1,...edges.map(e=>e.w));const selected=SELECTED_THEME&&nodes.find(n=>n.term===SELECTED_THEME)?SELECTED_THEME:nodes[0].term;SELECTED_THEME=selected;
   box.innerHTML=`<div class="theme-map-wrap"><div class="theme-map-canvas"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Theme map network graph">
-    <defs><filter id="themeSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.66  0 0 0 0 0.29  0 0 0 .85 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <defs><filter id="themeSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .95 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
     ${edges.map(e=>{const a=nodeById[e.a],b=nodeById[e.b];return `<line class="theme-edge" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke-width="${1+(e.w/maxEdge)*5}"/>`;}).join("")}
     ${nodes.slice().sort((a,b)=>(a.term===selected?1:0)-(b.term===selected?1:0)).map(n=>`<g class="theme-node" data-term="${escAttr(n.term)}" data-sel="${n.term===selected?1:0}" tabindex="0" role="button" aria-label="Theme ${escAttr(n.term)}, ${n.count} highlights"><circle class="n-ring" cx="${n.x}" cy="${n.y}" r="${n.r}"${n.term===selected?' filter="url(#themeSoftGlow)"':""}/><text x="${n.x}" y="${n.y+4}" text-anchor="middle">${escHtml(truncTitle(n.term,18))}</text></g>`).join("")}
   </svg><div class="theme-legend"><span>nodes = themes</span><span>size = highlights</span><span>line = co-occurrence</span></div></div><aside class="theme-detail" id="themeDetail"></aside></div>`;
@@ -884,16 +967,14 @@ function renderBookStats(){const box=document.getElementById("bookStats");if(!bo
   const toggle=`<div class="bs-groupby"><button data-bsg="book" data-on="${BOOKSTATS_GROUP==="book"?1:0}">by book</button><button data-bsg="author" data-on="${BOOKSTATS_GROUP==="author"?1:0}">by author</button></div>`;
   if(!books.length){box.innerHTML=toggle+'<div class="empty">Import highlights first.</div>';bsWireToggle(box);return;}
   const fmt=d=>d?`${d.getMonth()+1}.${d.getDate()}.${d.getFullYear()}`:"—";
-  // Bar length is relative to highlight count *across* books: the most-highlighted
-  // book fills the track (the box); the rest scale down. Segment widths use this
-  // global max so the bar can't exceed the box; legend %s stay within-book.
-  const gMax=Math.max(1,...books.map(b=>b.clips.length));
+  // Every bar fills the track at the same length; segment widths show each book's
+  // own category mix (legend %s match). Highlight count is shown in the head.
   const rows=books.map(b=>{const by={vocab:0,quotes:0,topic:0,none:0};
     b.clips.forEach(c=>by[c.cat]=(by[c.cat]||0)+1);
     const dates=b.clips.map(parseDate).filter(Boolean).sort((a,b)=>a-b);
     const total=b.clips.length;const maxBar=total||1;
     const segLab={vocab:"vocab",quotes:"quote",topic:"topic of interest",none:"untagged"};
-    const seg=(k,col)=>by[k]?`<span style="background:${col};width:${(by[k]/gMax*100).toFixed(2)}%"></span>`:"";
+    const seg=(k,col)=>by[k]?`<span style="background:${col};width:${(by[k]/maxBar*100).toFixed(2)}%"></span>`:"";
     const legend=`<div class="bs-legend">`+[["vocab","var(--cat-vocab)"],["quotes","var(--cat-quotes)"],["topic","var(--cat-topic)"],["none","var(--cat-none)"]].filter(([k])=>by[k]).map(([k,col])=>`<span class="bs-leg"><i style="background:${col}"></i>${by[k]} ${segLab[k]} · ${Math.round(by[k]/maxBar*100)}%</span>`).join("")+`</div>`;
     // per-book vocab ranked by rarity/difficulty
     const vocab=[...new Set(b.clips.filter(c=>c.cat==="vocab"&&isVocabWord(c)).map(c=>vocabTermOf(c)).filter(Boolean))]
@@ -939,7 +1020,6 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
         <button class="btn sm" data-act="new">＋ New library</button>
         <button class="btn ghost sm" data-act="restore">Restore from backup</button>
         ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn ghost sm" data-act="export">Export JSON backup</button><button class="btn ghost sm" data-act="dedup">Remove duplicates</button>`:""}
-        ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn sm" data-act="done">View library →</button>`:""}
       </div>
       ${activeLib&&activeLib.clips&&activeLib.clips.length?backupStatusHtml():""}
       ${batches&&batches.length?`
@@ -1427,12 +1507,12 @@ function newLibId(){return "lib"+Math.random().toString(36).slice(2,8);}
 // Snapshot the live working globals back into the active library object
 function syncActiveLib(){const lib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);if(!lib)return;
   lib.clips=STATE.clips;lib.decks=STATE.decks;lib.activeDeck=ACTIVE_DECK;
-  lib.catRules=Array.from(CAT_RULES.entries());lib.reviewLog=REVIEW_LOG;lib.importLog=IMPORT_LOG;lib.isSample=IS_SAMPLE;}
+  lib.catRules=Array.from(CAT_RULES.entries());lib.reviewLog=REVIEW_LOG;lib.importLog=IMPORT_LOG;lib.isSample=IS_SAMPLE;lib.bookMeta=STATE.bookMeta;}
 // Load a library object's data into the live working globals
 function loadLibIntoState(lib){
   STATE.clips=lib.clips||[];STATE.decks=lib.decks||[];ACTIVE_DECK=lib.activeDeck||(STATE.decks[0]&&STATE.decks[0].id)||null;
   CAT_RULES.clear();(lib.catRules||[]).forEach(([k,v])=>CAT_RULES.set(k,v));
-  REVIEW_LOG=lib.reviewLog||[];IMPORT_LOG=lib.importLog||[];IS_SAMPLE=!!lib.isSample;}
+  REVIEW_LOG=lib.reviewLog||[];IMPORT_LOG=lib.importLog||[];IS_SAMPLE=!!lib.isSample;STATE.bookMeta=lib.bookMeta||{};}
 function saveState(){try{clearTimeout(saveTimer);saveTimer=setTimeout(()=>{
     syncActiveLib();
     localStorage.setItem(LS_KEY,JSON.stringify({v:2,libraries:LIBRARIES,activeLib:ACTIVE_LIB,savedAt:Date.now()}));
@@ -1530,11 +1610,27 @@ function importLibraryJson(text){try{const d=JSON.parse(text);
     const libsrc=d.library||d;const clips=libsrc.clips;if(!Array.isArray(clips)||!clips.length){toast("That JSON has no highlights.");return;}
     clips.forEach(c=>{if(!c.fp)c.fp=clipFp(c);if(!c.cat)c.cat=autoCategorize(c);}); // older backups may lack fp/cat
     syncActiveLib();
-    const lib={id:newLibId(),name:(libsrc.name||"Imported library")+"",clips,decks:libsrc.decks||[],activeDeck:(libsrc.decks&&libsrc.decks[0]&&libsrc.decks[0].id)||null,
-      catRules:[],reviewLog:libsrc.reviewLog||[],importLog:libsrc.importLog||[],isSample:false};
-    LIBRARIES.push(lib);ACTIVE_LIB=lib.id;loadLibIntoState(lib);saveState();
-    document.getElementById("drop").classList.add("hidden");document.getElementById("app").classList.remove("hidden");
-    showSurprise();render();toast(`Restored "${lib.name}" — ${clips.length} highlights.`);
+    const cur=LIBRARIES.find(l=>l.id===ACTIVE_LIB);
+    const curHas=!!(cur&&cur.clips&&cur.clips.length);
+    // Default: merge backup into the current library (no duplicate library). Offer "restore into a new library" instead.
+    const intoNew=!curHas||!confirm(`Restore this backup into the current library “${cur.name}”?\n\nOK — merge into the current library.\nCancel — restore as a separate new library.`);
+    if(intoNew){
+      const lib={id:newLibId(),name:(libsrc.name||"Imported library")+"",clips,decks:libsrc.decks||[],activeDeck:(libsrc.decks&&libsrc.decks[0]&&libsrc.decks[0].id)||null,
+        catRules:[],reviewLog:libsrc.reviewLog||[],importLog:libsrc.importLog||[],isSample:false};
+      LIBRARIES.push(lib);ACTIVE_LIB=lib.id;loadLibIntoState(lib);saveState();
+      render();renderDropPanel();toast(`Restored "${lib.name}" — ${clips.length} highlights. Stay here or open the library.`); // stay on import screen
+      return;
+    }
+    // merge into current library by fingerprint — identical backup adds nothing (no duplicate)
+    const byFp=new Map(STATE.clips.map(c=>[c.fp,c]));
+    let added=0,changed=0,maxId=STATE.clips.reduce((m,c)=>Math.max(m,c.id||0),0);
+    clips.forEach(c=>{const ex=byFp.get(c.fp);
+      if(!ex){c.id=++maxId;STATE.clips.push(c);byFp.set(c.fp,c);added++;}
+      else if(ex.text!==c.text){if(ex.edited)ex.incoming=c.text;else{ex.text=c.text;ex.cat=ex.catLocked?ex.cat:autoCategorize(ex);}changed++;}});
+    saveState();
+    render();renderDropPanel(); // stay on import screen either way
+    if(added||changed)toast(`Restored into "${cur.name}": ${added} new, ${changed} updated.`);
+    else toast(`"${cur.name}" already matches this backup — nothing to restore.`);
   }catch(e){toast("Couldn't read that backup file.");}}
 
 /* ---------- Wiring ---------- */

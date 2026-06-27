@@ -6,25 +6,23 @@ function annotateTerms(text){
     const dashIdx=core.search(/[—–]/);let internalDash=false;if(dashIdx>0){core=core.slice(0,dashIdx);internalDash=true;}
     const space=(tokens[i+1]&&/^\s+$/.test(tokens[i+1]))?tokens[i+1]:"";
     words.push({raw:tk,lead,core,trail,space,internalDash,cap:isCapCore(core),init:isInitial(core),allcaps:isAllCaps(core),
-      connector:CONNECTORS.test(core),common:COMMON_CAP.test(core.replace(/\./,"")),attachNoun:ATTACH_NOUN.test(core),
+      connector:CONNECTORS.test(core),common:COMMON_CAP.test(core.replace(/\./,"")),attachNoun:ATTACH_NOUN.test(core),title:TITLE_PREFIX.test(core.replace(/[.'’]/g,"")),
       breaksAfter:/[,;:)]/.test(trail)||/[—–]$/.test(trail)||internalDash,breaksBefore:/[(]/.test(lead),endsSentence:/[.!?]$/.test(trail)});}
   let prevEnded=true;for(const w of words){w.sentStart=prevEnded;prevEnded=w.endsSentence&&!w.init&&!w.common;}
   const shortClip=words.length<=3;
   const isArticleCore=c=>/^(the|a|an)$/i.test(c);
-  // proper-noun evidence: cores that appear capitalised away from a sentence start
-  const midCap=new Set();
-  for(const w of words){if((w.cap||w.allcaps)&&!w.sentStart&&!w.common&&!w.connector)midCap.add(w.core.replace(/['’]s$/,"").toLowerCase());}
   let out="",i=0;
   while(i<words.length){const w=words[i];
     const startArticle=w.cap&&isArticleCore(w.core)&&!w.endsSentence;
-    const eligible=((w.cap||w.init)&&!w.common)||startArticle;
+    const startTitle=w.title&&!w.endsSentence; // "St"/"Dr" etc. lead a name even though they're COMMON_CAP
+    const eligible=((w.cap||w.init)&&!w.common)||startArticle||startTitle;
     if(!eligible){out+=w.raw+w.space;i++;continue;}
     let j=i,run=[];
     while(j<words.length){const x=words[j];
       if(x.breaksBefore&&run.length)break;
-      if(((x.cap||x.init)&&!x.common)||(j===i&&startArticle)){run.push(x);if(x.breaksAfter){j++;break;}j++;continue;}
-      // bridge over one or more consecutive connectors ("in the") to the next capitalised name
-      if(x.connector&&!x.breaksAfter&&run.length){
+      if(((x.cap||x.init)&&!x.common)||(j===i&&startArticle)||(j===i&&startTitle)){run.push(x);if(x.breaksAfter){j++;break;}j++;continue;}
+      // bridge over one or more consecutive connectors ("in the") to the next capitalised name — but never across a coordinator
+      if(x.connector&&!x.breaksAfter&&!COORD.test(x.core)&&run.length){
         let k=j;while(k<words.length&&words[k].connector&&!words[k].breaksAfter&&!(k>j&&words[k].breaksBefore))k++;
         const nx=words[k];
         if(nx&&(nx.cap||nx.init)&&!nx.common&&!nx.breaksBefore){for(let m=j;m<k;m++)run.push(words[m]);j=k;continue;}
@@ -38,23 +36,25 @@ function annotateTerms(text){
       if(realCaps<2){out+=run[0].raw+run[0].space;i++;continue;}
     }
     if(!run.length){out+=w.raw+w.space;i++;continue;}
-    const realJ=i+run.length;
-    const hasRealName=run.some(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init&&!isArticleCore(r.core));
-    const w0=run.find(r=>!isArticleCore(r.core))||run[0];
-    const nameWords=run.filter(r=>!r.connector&&!isArticleCore(r.core));
+    // a sentence-leading stopword/coordinator ("As Buddhists") shouldn't be glued into the name — emit it plainly, keep the rest
+    let dropped="",dropCount=0;
+    while(run.length>1&&run[0].sentStart&&!run[0].allcaps&&!run[0].init&&!run[0].title&&(SENTENCE_LEAD_STOP.test(run[0].core)||run[0].connector)){const d=run.shift();dropped+=d.raw+d.space;dropCount++;}
+    const realJ=i+dropCount+run.length;
+    const hasRealName=run.some(r=>(r.cap||r.allcaps)&&!r.connector&&!r.init&&!r.title&&!isArticleCore(r.core));
+    const w0=run.find(r=>!isArticleCore(r.core)&&!r.title)||run[0];
+    const nameWords=run.filter(r=>!r.connector&&!isArticleCore(r.core)&&!r.title);
     const single=nameWords.length===1;
     const possessive=/['’]s$/.test(w0.core);
-    const recurs=midCap.has(w0.core.replace(/['’]s$/,"").toLowerCase());
-    // a lone capitalised word is ambiguous if it merely opens a sentence: skip known lead-words always,
-    // and skip any non-recurring single in a longer passage (real proper nouns usually recur or sit mid-sentence)
-    const ambiguous=single&&w0.sentStart&&!w0.allcaps&&!w0.init&&!possessive&&
-      ((SENTENCE_LEAD_STOP.test(w0.core)||w0.connector)||(!recurs&&words.length>1));
+    // a lone capitalised word that merely opens a sentence is ambiguous only when it's a known lead/stop word;
+    // genuine names that happen to start a sentence (Perugino, Redon) are kept
+    const ambiguous=single&&w0.sentStart&&!w0.allcaps&&!w0.init&&!possessive&&!w0.title&&
+      (SENTENCE_LEAD_STOP.test(w0.core)||w0.connector);
     if(hasRealName&&!ambiguous){const lead=run[0].lead,trail=run[run.length-1].trail;
       let display=run.map((r,k)=>{let s=r.raw;if(k===0)s=s.slice(lead.length);if(k===run.length-1)s=s.slice(0,s.length-trail.length);return s;}).join(" ");
       const term=lookupForm(display);const spaceAfter=run[run.length-1].space;
-      if(term&&term.replace(/[^A-Za-z]/g,"").length>=3)out+=escHtml(lead)+`<span class="term" data-term="${escAttr(term)}">${escHtml(display)}</span>`+escHtml(trail)+spaceAfter;
-      else out+=run.map(r=>r.raw+r.space).join("");}
-    else out+=run.map(r=>r.raw+r.space).join("");
+      if(term&&term.replace(/[^A-Za-z]/g,"").length>=3)out+=dropped+escHtml(lead)+`<span class="term" data-term="${escAttr(term)}">${escHtml(display)}</span>`+escHtml(trail)+spaceAfter;
+      else out+=dropped+run.map(r=>r.raw+r.space).join("");}
+    else out+=dropped+run.map(r=>r.raw+r.space).join("");
     i=Math.max(realJ,i+1);}
   return out.replace(/\s+$/,"");}
 
@@ -66,9 +66,10 @@ async function fetchWikiOne(title){
     return (j.type==="disambiguation"||!j.extract)?null:{title:j.title,extract:j.extract,link:j.content_urls?.desktop?.page,thumb:j.thumbnail?.source};}catch(e){return null;}}
 async function fetchWiki(term){if(term in wikiCache)return wikiCache[term];
   const cands=[term];
-  // "Rimbaud's Voyelles" / "Dürer's Melancholia" — try the full phrase first, then the work itself
+  // "Rimbaud's Voyelles" / "Dürer's Melancholia" — try the full phrase, then the work, then the maker
   const pm=(term||"").match(/^(.+?)['’]s\s+(.+)$/);
   if(pm&&pm[2]&&pm[2].trim().length>=3)cands.push(pm[2].trim());
+  if(pm&&pm[1]&&pm[1].trim().length>=3)cands.push(pm[1].trim());
   let res=null;for(const t of cands){res=await fetchWikiOne(t);if(res)break;}
   wikiCache[term]=res;return res;}
 const wiktCache={};
