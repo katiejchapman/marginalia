@@ -33,3 +33,8 @@
 ## 5ff6bd1 — chore: stop tracking .DS_Store (macOS Finder junk; already in .gitignore) (2026-06-27) <!--auto:5ff6bd1-->
 ## 69532fc — feat: reading-mark hover toggle + corner triangle, import-screen stickiness, light fixes (2026-06-27) <!--auto:69532fc-->
 ## 4cef458 — feat: reading toggle rework, light-mode red accent, restore-undo, shelf paging (2026-06-27) <!--auto:4cef458-->
+## be14e8e — chore: auto-log commit history (2026-06-27) <!--auto:be14e8e-->
+## 2377674 — feat: connections jump+collapse icon, light theme-map redesign, red toggles, fixed tab height (2026-06-27) <!--auto:2377674-->
+## 844168c — feat: red laurel symbol in light mode, drop redundant wiki-title header on topic review cards (2026-06-27) <!--auto:844168c-->
+## 0393090 — feat: dedup import-history rows when merging duplicate libraries (2026-06-27) <!--auto:0393090-->
+## 10e1899 — feat: mobile UI pass + architecture dashboard (2026-06-28) <!--auto:10e1899-->

@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **marginalia** is a Kindle notes organizer. It parses a Kindle `My Clippings.txt`
 (or HTML/CSV export), auto-categorizes highlights, displays them as a virtual
 bookshelf/library, and provides a spaced-repetition Review mode plus Anki deck
-export. There is **no build, no server, no dependencies, no package manager** —
-the entire app is a single self-contained `index.html` (~3000 lines: inline
-`<style>`, then inline `<script>` of vanilla JS, no frameworks).
+export. There is **no build, no server, no dependencies, no package manager**.
+`index.html` loads `styles.css` plus classic `<script src>` files in `js/`
+(`app.js`, `highlights.js`, `boot.js`, …) — vanilla JS, global scope, no
+frameworks. Runs from `file://` (double-click) or a static server.
 
 ## Running / developing
 
@@ -19,7 +20,7 @@ the entire app is a single self-contained `index.html` (~3000 lines: inline
 
 ## Architecture
 
-Everything lives in the one `<script>` in `index.html`. Key pieces:
+App logic lives in `js/` (classic scripts, global scope). Key pieces:
 
 **Data model & persistence**
 - `STATE = {clips, decks}` holds the *active* library's working data. A `clip` is
@@ -108,16 +109,5 @@ key. Change `CAT_LABELS` / inline display strings only; leave `data-cat`,
   not pill-shaped. This applies to group switches like the by-book/author toggle,
   deck group-by, S/M/L size toggle, and any similar segmented control added later.
 
-## Conventions
-
-- Do not rewrite the entire site unless explicitly asked.
-- Prefer small, isolated edits.
-- When editing the large original `index.html`, inspect only the relevant section.
-- Do not paste or reload the full 3000-line file unless necessary.
-- Code is written terse/minified-by-hand: many statements per line, short names,
-  CSS variables for theming (`--paper`, `--ink`, `--accent`, etc., with
-  `[data-mode="light"]`/`dark` overrides). Match the surrounding density rather
-  than reformatting.
-- The visual theme is a "scriptorium"/illuminated-manuscript aesthetic (serif
-  fonts, parchment colors, an oil-lamp cursor). Keep UI additions consistent
-  with the existing CSS-variable palette.
+> Editing conventions (small isolated edits, terse hand-minified density, vanilla
+> JS, scriptorium aesthetic, CSS-variable theming) live in `.claude/rules/frontend.md`.

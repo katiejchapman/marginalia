@@ -33,7 +33,8 @@ classic `<script src>` tags (not modules). Keep it that way.
 
 ## Visual style
 
-Preserve the scriptorium / illuminated-manuscript aesthetic. Reuse existing CSS
+Preserve the scriptorium / illuminated-manuscript aesthetic (serif fonts,
+parchment colors, an oil-lamp cursor). Reuse existing CSS
 variables (`--paper`, `--ink`, `--accent`, `--muted`, etc.) and the
 `[data-mode="light"]` / `[data-mode="dark"]` overrides. New buttons, cards,
 inputs, and panels should feel consistent with the existing UI.
