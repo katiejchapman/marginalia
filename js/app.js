@@ -1355,7 +1355,7 @@ async function flipReviewCard(){
     if(!w.definition&&!w.etymology&&!w.example&&!w.translation)html=`<div class="t-load">No dictionary entry found for this word.</div>`;
   }else{const term=cz.answer||clipKeyTerm(c);const wk=await fetchWiki(term);
     // don't restate the highlight — the Wikipedia title already names the topic
-    html=(wk?`<div class="t-field"><span class="fl">${escHtml(wk.title)}</span>${escHtml(wk.extract)}</div>`:`<div class="t-load">No Wikipedia summary.</div>`);
+    html=(wk?`<div class="t-field">${escHtml(wk.extract)}</div>`:`<div class="t-load">No Wikipedia summary.</div>`);
   }
   if(back)back.innerHTML=html;
   const ctr=document.getElementById("rvControls");
