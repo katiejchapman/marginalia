@@ -32,3 +32,4 @@
 ## 48569f2 — feat: reading marks, collapse persistence, dedup libraries, light-mode overhaul (2026-06-27) <!--auto:48569f2-->
 ## 5ff6bd1 — chore: stop tracking .DS_Store (macOS Finder junk; already in .gitignore) (2026-06-27) <!--auto:5ff6bd1-->
 ## 69532fc — feat: reading-mark hover toggle + corner triangle, import-screen stickiness, light fixes (2026-06-27) <!--auto:69532fc-->
+## 4cef458 — feat: reading toggle rework, light-mode red accent, restore-undo, shelf paging (2026-06-27) <!--auto:4cef458-->
