@@ -169,10 +169,9 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
     sp.style.setProperty("--spine-h",Math.round(baseH*mult)+"px");
     sp.style.setProperty("--spine-w",Math.round(baseW*mult)+"px");
     sp.className="book-spine "+sv+(b.reading?" reading":"");
-    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div>${b.reading?'<div class="reading-flag" title="Currently reading"></div>':""}<button class="cover-bookmark${b.reading?" on":""}" type="button" title="${b.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading"></button><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
+    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div>${b.reading?'<div class="reading-flag" title="Currently reading"></div>':""}<div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
     sp.title=b.title+(b.author?" — "+b.author:"")+(b.reading?" · currently reading":"");
     sp.onclick=()=>{const el=document.getElementById("book-"+b.key);if(el){el.classList.remove("collapsed");COLLAPSED.delete(b.key);el.scrollIntoView({behavior:"smooth"});}};
-    sp.querySelector(".cover-bookmark").onclick=e=>{e.stopPropagation();toggleReading(b.title,b.author);};
     // hovering a book slides its same-row neighbors aside (no overlap) so you can sweep across; edge books expand left and push the preceding ones
     const slide=on=>{const expW=size==="s"?118:size==="l"?158:140,delta=Math.max(0,expW-sp.offsetWidth);
       const left=sp.classList.contains("expand-left"),dir=left?-1:1,myBottom=sp.offsetTop+sp.offsetHeight;
@@ -236,12 +235,14 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     if(!clips.length&&!isEmpty)return;shown+=clips.length;
     const sec=document.createElement("section");sec.className="book"+(book.reading?" reading":"")+(isEmpty?" empty-book":"");sec.id="book-"+book.key;
     const readMark=`<button class="read-mark${book.reading?" on":""}" type="button" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading"><svg viewBox="0 0 16 20" aria-hidden="true"><path class="rm-flag" d="M2.5 1.5h11v17l-5.5-3.6-5.5 3.6z"/><circle class="rm-dot" cx="8" cy="7.6" r="3"/></svg></button>`;
+    const cornerTri=`<button class="book-corner-tri${book.reading?" on":""}" type="button" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading"></button>`;
     const tally=isEmpty?`<span class="tally">empty</span>`:`<span class="tally">${clips.length} ✦</span>`;
-    sec.innerHTML=`<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span>${readMark}<span class="title">${escHtml(book.title)}</span>${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}${tally}<button class="book-del" title="${isEmpty?"Delete this empty book":"Delete this book and all its highlights"}" aria-label="Delete book">✕</button><span class="caret">▾</span></div><div class="clips"></div>`;
+    sec.innerHTML=`${cornerTri}<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="title">${escHtml(book.title)}</span>${readMark}${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}${tally}<button class="book-del" title="${isEmpty?"Delete this empty book":"Delete this book and all its highlights"}" aria-label="Delete book">✕</button><span class="caret" aria-hidden="true"></span></div><div class="clips"></div>`;
     if(COLLAPSED.has(book.key))sec.classList.add("collapsed");
     const wrap=sec.querySelector(".clips");
     sec.querySelector(".book-head").onclick=()=>{const col=sec.classList.toggle("collapsed");if(col)COLLAPSED.add(book.key);else COLLAPSED.delete(book.key);};
-    sec.querySelector(".read-mark").onclick=e=>{e.stopPropagation();toggleReading(book.title,book.author);};
+    const _togR=e=>{e.stopPropagation();toggleReading(book.title,book.author);};
+    sec.querySelector(".read-mark").onclick=_togR;sec.querySelector(".book-corner-tri").onclick=_togR;
     sec.querySelector(".book-del").onclick=e=>{e.stopPropagation();
       const removed=STATE.clips.filter(c=>cleanTitle(c.title)===book.title&&(c.author||"")===(book.author||""));
       const warn=isEmpty?`Delete the empty book “${book.title}”? You can undo.`:`Delete “${book.title}” and all ${removed.length} of its highlight${removed.length===1?"":"s"}? You can undo.`;
@@ -856,9 +857,9 @@ function renderThemeMap(){const box=document.getElementById("wordCloud");if(!box
   nodes.forEach((n,i)=>{const angle=(Math.PI*2*i/nodes.length)-Math.PI/2;const ring=i<6?150:212;n.x=cx+Math.cos(angle)*ring;n.y=cy+Math.sin(angle)*ring;n.r=14+Math.round(Math.pow(n.count/maxCount,.72)*28);});
   const nodeById=Object.fromEntries(nodes.map(n=>[n.id,n]));const maxEdge=Math.max(1,...edges.map(e=>e.w));const selected=SELECTED_THEME&&nodes.find(n=>n.term===SELECTED_THEME)?SELECTED_THEME:nodes[0].term;SELECTED_THEME=selected;
   box.innerHTML=`<div class="theme-map-wrap"><div class="theme-map-canvas"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Theme map network graph">
-    <defs><filter id="themeSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .95 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <defs><filter id="themeSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.66  0 0 0 0 0.29  0 0 0 .9 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
     ${edges.map(e=>{const a=nodeById[e.a],b=nodeById[e.b];return `<line class="theme-edge" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke-width="${1+(e.w/maxEdge)*5}"/>`;}).join("")}
-    ${nodes.slice().sort((a,b)=>(a.term===selected?1:0)-(b.term===selected?1:0)).map(n=>`<g class="theme-node" data-term="${escAttr(n.term)}" data-sel="${n.term===selected?1:0}" tabindex="0" role="button" aria-label="Theme ${escAttr(n.term)}, ${n.count} highlights"><circle class="n-ring" cx="${n.x}" cy="${n.y}" r="${n.r}"/><text x="${n.x}" y="${n.y+4}" text-anchor="middle">${escHtml(truncTitle(n.term,18))}</text></g>`).join("")}
+    ${nodes.slice().sort((a,b)=>(a.term===selected?1:0)-(b.term===selected?1:0)).map(n=>`<g class="theme-node" data-term="${escAttr(n.term)}" data-sel="${n.term===selected?1:0}" tabindex="0" role="button" aria-label="Theme ${escAttr(n.term)}, ${n.count} highlights"><circle class="n-ring" cx="${n.x}" cy="${n.y}" r="${n.r}"${n.term===selected?' filter="url(#themeSoftGlow)"':""}/><text x="${n.x}" y="${n.y+4}" text-anchor="middle">${escHtml(truncTitle(n.term,18))}</text></g>`).join("")}
   </svg><div class="theme-legend"><span>nodes = themes</span><span>size = highlights</span><span>line = co-occurrence</span></div></div><aside class="theme-detail" id="themeDetail"></aside></div>`;
   box.querySelectorAll(".theme-node").forEach(n=>{const open=()=>{SELECTED_THEME=n.dataset.term;renderThemeMap();};n.onclick=open;n.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open();}};});
   renderThemeDetail(nodes.find(n=>n.term===selected)||nodes[0]);}
@@ -995,10 +996,11 @@ function renderBookStats(){const box=document.getElementById("bookStats");if(!bo
 }
 function bsWireToggle(box){box.querySelectorAll(".bs-groupby button[data-bsg]").forEach(b=>b.onclick=()=>{BOOKSTATS_GROUP=b.dataset.bsg;renderBookStats();});}
 function renderImportHistory(){const box=document.getElementById("importHistory");if(!box)return;
-  if(!IMPORT_LOG.length){box.innerHTML='<div class="empty">No imports yet. Your import history will appear here.</div>';return;}
+  const rows=IMPORT_LOG.filter(r=>!/^(manual|scan|handoff)/i.test(r.batch||"")); // manual/phone adds aren't imports
+  if(!rows.length){box.innerHTML='<div class="empty">No imports yet. Your import history will appear here.</div>';return;}
   const fmt=t=>new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",year:"2-digit",hour:"numeric",minute:"2-digit"});
   box.innerHTML=`<table class="rv-hist"><thead><tr><th>When</th><th>File</th><th>Modified</th><th>New</th><th>Updated</th><th>Library total</th></tr></thead><tbody>`+
-    IMPORT_LOG.map(r=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.modified?fmt(r.modified):"—"}</td><td>${r.added}</td><td>${r.updated}</td><td>${r.total}</td></tr>`).join("")+
+    rows.map(r=>`<tr><td>${fmt(r.date)}</td><td>${escHtml(r.name||"import")}</td><td>${r.modified?fmt(r.modified):"—"}</td><td>${r.added}</td><td>${r.updated}</td><td>${r.total}</td></tr>`).join("")+
     `</tbody></table>`;
 }
 function renderDropPanel(){const box=document.getElementById("dropPanel");if(typeof updateLibSwitch==="function")updateLibSwitch();if(!box)return;
@@ -1006,7 +1008,7 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
   if(!libs.length){box.innerHTML="";return;}
   const fmt=t=>new Date(t).toLocaleString(undefined,{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"});
   const activeLib=LIBRARIES.find(l=>l.id===ACTIVE_LIB);
-  const batches=activeLib?(activeLib.importLog||IMPORT_LOG):[];
+  const batches=(activeLib?(activeLib.importLog||IMPORT_LOG):[]).filter(r=>!/^(manual|scan|handoff)/i.test(r.batch||"")); // manual/phone adds aren't imports
   box.innerHTML=`
     <div class="dp-card">
       <div class="dp-head">Your libraries</div>
@@ -1569,10 +1571,7 @@ function deleteLibrary(id){const i=LIBRARIES.findIndex(l=>l.id===id);if(i<0)retu
   LIBRARIES.splice(i,1);
   if(ACTIVE_LIB===id){if(LIBRARIES.length){ACTIVE_LIB=LIBRARIES[0].id;loadLibIntoState(LIBRARIES[0]);}
     else{ACTIVE_LIB=null;STATE.clips=[];STATE.decks=[];ACTIVE_DECK=null;CAT_RULES.clear();REVIEW_LOG=[];IMPORT_LOG=[];IS_SAMPLE=false;}}
-  saveState();
-  if(STATE.clips.length){document.getElementById("drop").classList.add("hidden");document.getElementById("app").classList.remove("hidden");render();}
-  else{document.getElementById("app").classList.add("hidden");document.getElementById("drop").classList.remove("hidden");}
-  renderDropPanel();}
+  saveState();render();renderDropPanel();} // stay on the import screen — never yank to the library on a management action
 function removeImportBatch(batchId,idx){
   const entry=(idx!=null&&idx>=0)?IMPORT_LOG[idx]:null;
   const before=STATE.clips.length;

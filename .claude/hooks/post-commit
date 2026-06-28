@@ -1,0 +1,14 @@
+#!/bin/sh
+# Auto-append each commit's subject to .claude/completions/completions.md.
+# Git has no post-push client hook; post-commit fires after every commit, which is
+# the closest reliable trigger. The appended line lands in the working tree and is
+# picked up by your next commit. Idempotent per hash (won't double-log).
+root="$(git rev-parse --show-toplevel 2>/dev/null)" || exit 0
+f="$root/.claude/completions/completions.md"
+[ -f "$f" ] || exit 0
+hash="$(git log -1 --format=%h)"
+grep -q "<!--auto:$hash-->" "$f" 2>/dev/null && exit 0
+subj="$(git log -1 --format=%s)"
+date="$(git log -1 --format=%cs)"
+printf '## %s — %s (%s) <!--auto:%s-->\n' "$hash" "$subj" "$date" "$hash" >> "$f"
+exit 0

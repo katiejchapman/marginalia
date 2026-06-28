@@ -27,7 +27,7 @@
     --accent:#9a7008;--gold:#9a7008;--term-line:#9a7008;--cat-vocab:#9a7008;
     --highlighter:rgba(154,112,8,.22);
     /* keep the tags clearly distinct from each other and from the brightened jewel covers on parchment */
-    --cat-quotes:#b23124;--cat-topic:#1f6bb5;--cat-none:#9a8559;
+    --cat-quotes:#b23124;--cat-topic:#1f6bb5;--cat-none:#8b8a86;
   }
   /* jewel covers read muddy on parchment — punch up saturation/brightness in light mode */
   [data-mode="light"] .book-spine .cloth{filter:url(#clothTex) saturate(1.38) brightness(1.12)}
@@ -200,19 +200,20 @@
 
   /* ===== book section + bookmark ribbon ===== */
   .book{margin-top:34px;scroll-margin-top:80px;position:relative}
-  /* reading mark left of the title: a bookmark whose inner circle fills gold when the book is being read */
-  .read-mark{display:inline-flex;align-items:center;justify-content:center;width:18px;height:23px;padding:0;margin-right:5px;border:none;background:none;cursor:pointer;flex:none;vertical-align:middle}
+  /* reading mark just right of the title: bookmark whose inner circle fills gold when reading; shows on hover */
+  .read-mark{display:inline-flex;align-items:center;justify-content:center;width:18px;height:23px;padding:0;margin-left:8px;border:none;background:none;cursor:pointer;flex:none;vertical-align:middle;opacity:0;transition:opacity .12s}
+  .book-head:hover .read-mark{opacity:1}
   .read-mark svg{width:15px;height:19px}
   .read-mark .rm-flag{fill:none;stroke:var(--ink-soft);stroke-width:1.4;transition:.14s}
   .read-mark .rm-dot{fill:none;stroke:var(--ink-soft);stroke-width:1.3;transition:.14s}
   .read-mark:hover .rm-flag,.read-mark:hover .rm-dot{stroke:var(--gold)}
   .read-mark.on .rm-flag{stroke:var(--gold)}
   .read-mark.on .rm-dot{fill:var(--gold);stroke:var(--gold)}
-  /* bookmark on the shelf cover — appears when the cover is expanded (hover); click toggles reading */
-  .book-spine .cover-bookmark{position:absolute;top:0;right:13px;width:17px;height:25px;z-index:7;border:none;padding:0;cursor:pointer;background:var(--gold);
-    clip-path:polygon(0 0,100% 0,100% 100%,50% 72%,0 100%);opacity:0;transition:opacity .2s .08s}
-  .shelf .book-spine:hover .cover-bookmark{opacity:.92}
-  .shelf .book-spine:hover .cover-bookmark:hover{opacity:1}
+  /* folded-corner bookmark: shows faint on hover (an option), solid gold when reading; click toggles */
+  .book-corner-tri{position:absolute;top:0;right:0;width:0;height:0;z-index:8;padding:0;background:none;cursor:pointer;
+    border-top:22px solid var(--gold);border-left:22px solid transparent;opacity:0;transition:opacity .14s}
+  .book:hover .book-corner-tri{opacity:.3}
+  .book-corner-tri.on{opacity:1}
   .book-head{position:sticky;top:57px;z-index:6;background:var(--paper);display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;padding-top:6px;margin-bottom:2px;cursor:pointer;padding-left:40px}
   .ribbon{position:absolute;left:6px;top:-6px;width:20px;height:50px;box-shadow:0 2px 4px rgba(0,0,0,.4);z-index:2}
   .ribbon:after{content:"";position:absolute;bottom:-8px;left:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:8px solid var(--rcol,#6e2a26)}
@@ -221,7 +222,9 @@
   .book-head .title{font-size:26px;font-weight:600;letter-spacing:-.3px;flex:1;font-family:var(--head)}
   .book-head .author{font-style:italic;color:var(--ink-soft);font-size:16px;font-family:var(--display)}
   .book-head .tally{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
-  .book-head .caret{transition:.2s;color:var(--ink-soft)}
+  .book-head .caret{color:var(--ink-soft);font-family:var(--mono);font-weight:700;font-size:16px;line-height:1;width:16px;text-align:center;flex:none}
+  .book-head .caret:before{content:"\2212"} /* minus = expanded (click to collapse) */
+  .book.collapsed .caret:before{content:"+"} /* plus = collapsed (click to expand) */
   .book-head .book-reading{border:1px solid var(--rule-strong);background:none;color:var(--ink-soft);font-family:var(--mono);font-size:10px;letter-spacing:.02em;line-height:1;padding:4px 8px;border-radius:3px;cursor:pointer;opacity:0;transition:.12s;white-space:nowrap}
   .book-head:hover .book-reading{opacity:1}
   .book-head .book-reading[data-on="1"]{color:#3a2c12;background:var(--gold);border-color:var(--gold)}
@@ -230,7 +233,7 @@
   .book-head .book-del:hover{opacity:1;color:var(--cat-quotes,#b54)}
   .book.empty-book .book-head .title{color:var(--ink-soft)}
   .empty-book-note{font-family:var(--head);font-style:italic;font-size:14px;color:var(--ink-soft);padding:10px 0 4px}
-  .book.collapsed .caret{transform:rotate(-90deg)}.book.collapsed .clips{display:none}
+  .book.collapsed .clips{display:none}
 
   /* ===== clip ===== */
   .clip{display:grid;grid-template-columns:78px 1fr;gap:0;border-bottom:1px solid var(--rule);padding:18px 0}
@@ -431,7 +434,7 @@
   /* plotted point: a small colour-coded dot; the bookshelf front cover floats up on hover */
   .pace-pt{position:absolute;transform:translate(-50%,-50%);z-index:3}
   .pace-pt:hover{z-index:40}
-  .pace-dot{display:block;width:13px;height:13px;border-radius:50%;cursor:pointer;box-shadow:0 0 0 3px var(--card),0 1px 3px rgba(0,0,0,.45);transition:transform .12s}
+  .pace-dot{display:block;width:13px;height:13px;border-radius:50%;cursor:pointer;box-shadow:0 0 0 3px var(--card),0 1px 3px rgba(0,0,0,.45);transition:transform .12s;filter:saturate(1.3) brightness(1.22)}
   .pace-pt:hover .pace-dot{transform:scale(1.25)}
   .pace-cover{position:absolute;left:50%;bottom:16px;transform:translateX(-50%) scale(.85);transform-origin:bottom center;width:86px;height:120px;opacity:0;visibility:hidden;pointer-events:none;
     border-radius:3px 5px 5px 3px;overflow:hidden;transition:opacity .12s ease,transform .12s ease;
@@ -454,7 +457,7 @@
   .lol-nm{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);font-family:var(--head)}
   .lol-track{flex:0 0 84px;height:2px;background:var(--rule);position:relative;border-radius:2px}
   .lol-fill{position:absolute;left:0;top:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--accent));border-radius:2px}
-  .lol-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--card)}
+  .lol-dot{position:absolute;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 2px var(--card);filter:saturate(1.3) brightness(1.22)}
   .lol-dur{flex:0 0 auto;width:52px;text-align:right;font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
   @media(max-width:640px){.pace-lists{grid-template-columns:1fr}}
   .bs-groupby{display:inline-flex;border:1px solid var(--rule);border-radius:4px;overflow:hidden;margin:0 0 14px}
@@ -839,9 +842,7 @@
   .theme-node:hover{filter:brightness(1.12)}
   .theme-node text{font-family:var(--head);font-size:13px;fill:var(--ink);paint-order:stroke;stroke:var(--card);stroke-width:3px;stroke-linejoin:round}
   .theme-node .n-ring{fill:var(--panel);stroke:rgba(201,168,74,.5);stroke-width:1.1}
-  .theme-node[data-sel="1"]{filter:drop-shadow(0 0 5px rgba(255,255,255,.92)) drop-shadow(0 0 11px rgba(255,255,255,.55))}
   .theme-node[data-sel="1"] .n-ring{fill:var(--panel);stroke:var(--accent);stroke-width:1.6}
-  [data-mode="light"] .theme-node[data-sel="1"]{filter:drop-shadow(0 0 4px rgba(80,58,6,.9)) drop-shadow(0 0 10px rgba(133,97,7,.55))}
   .theme-node[data-sel="1"] text{fill:var(--ink);stroke:var(--card);font-weight:600}
   .theme-edge{stroke:var(--rule-strong);stroke-opacity:.6}
   .theme-detail{border:1px solid var(--rule);background:var(--card);border-radius:8px;padding:16px;min-height:520px;box-shadow:var(--shadow);overflow:auto}
