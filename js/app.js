@@ -1605,6 +1605,11 @@ function removeImportBatch(batchId,idx){
   if(!STATE.clips.length){document.getElementById("app").classList.add("hidden");document.getElementById("drop").classList.remove("hidden");}
   else render();
   toast(removed?`Removed ${removed} highlight${removed===1?"":"s"} from that import.`:"Import entry removed (its highlights came in with another import).");}
+// drop import rows that are the same import (same source name + same fingerprint set); keep first occurrence
+function dedupImportRows(rows){const seen=new Set();const out=[];
+  for(const r of rows||[]){const key=((r.name||"")+"|"+([...(r.fps||[])].sort().join(",")));
+    if(seen.has(key))continue;seen.add(key);out.push(r);}
+  return out;}
 // merge libraries that share a name (case-insensitive) — combine + dedup their clips into the first
 function dedupLibraries(){
   const activeName=(LIBRARIES.find(l=>l.id===ACTIVE_LIB)?.name||"").trim().toLowerCase();
@@ -1613,7 +1618,7 @@ function dedupLibraries(){
     if(!keep){byName.set(key,lib);survivors.push(lib);continue;}
     keep.clips=dedupClips([...(keep.clips||[]),...(lib.clips||[])]);
     if(!(keep.decks||[]).length)keep.decks=lib.decks||[];
-    keep.importLog=[...(keep.importLog||[]),...(lib.importLog||[])];
+    keep.importLog=dedupImportRows([...(keep.importLog||[]),...(lib.importLog||[])]);
     keep.reviewLog=[...(keep.reviewLog||[]),...(lib.reviewLog||[])];
     keep.bookMeta=Object.assign({},lib.bookMeta||{},keep.bookMeta||{});
     merged++;}
