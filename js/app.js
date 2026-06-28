@@ -138,6 +138,13 @@ function bmGet(t,a){return (STATE.bookMeta||{})[bookKey(t,a)];}
 function bmSet(t,a,patch){STATE.bookMeta=STATE.bookMeta||{};const k=bookKey(t,a);const m=STATE.bookMeta[k]||(STATE.bookMeta[k]={title:cleanTitle(t),author:a||""});Object.assign(m,patch);return m;}
 function bmPrune(t,a){const k=bookKey(t,a),m=(STATE.bookMeta||{})[k];if(m&&!m.reading&&!m.kept)delete STATE.bookMeta[k];}
 function toggleReading(t,a){const m=bmGet(t,a);bmSet(t,a,{reading:!(m&&m.reading)});bmPrune(t,a);saveState();render();}
+// toggle reading without a full re-render (so a hovered shelf cover stays expanded); patches the spine + list section in place
+function toggleReadingInPlace(t,a,spineEl,key){const m=bmGet(t,a);const now=!(m&&m.reading);bmSet(t,a,{reading:now});bmPrune(t,a);saveState();
+  const tip=now?"Currently reading — click to clear":"Mark as currently reading";
+  if(spineEl){spineEl.classList.toggle("reading",now);const cc=spineEl.querySelector(".cover-corner");if(cc)cc.title=tip;
+    spineEl.title=spineEl.title.replace(/ · currently reading$/,"")+(now?" · currently reading":"");}
+  const sec=document.getElementById("book-"+key);
+  if(sec){sec.classList.toggle("reading",now);const rb=sec.querySelector(".book-reading");if(rb){rb.dataset.on=now?1:0;rb.title=tip;}}}
 // groupByBook plus empty-but-kept books (pinned to the top, newest-emptied first), each annotated with its reading flag
 function booksWithEmpty(){const books=groupByBook();const have=new Set(books.map(b=>b.title+"|"+(b.author||"")));
   const empties=[];
@@ -169,9 +176,10 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
     sp.style.setProperty("--spine-h",Math.round(baseH*mult)+"px");
     sp.style.setProperty("--spine-w",Math.round(baseW*mult)+"px");
     sp.className="book-spine "+sv+(b.reading?" reading":"");
-    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div>${b.reading?'<div class="reading-flag" title="Currently reading"></div>':""}<div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
+    sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div><div class="cover-corner" title="${b.reading?"Currently reading — click to clear":"Mark as currently reading"}"></div><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
     sp.title=b.title+(b.author?" — "+b.author:"")+(b.reading?" · currently reading":"");
     sp.onclick=()=>{const el=document.getElementById("book-"+b.key);if(el){el.classList.remove("collapsed");COLLAPSED.delete(b.key);el.scrollIntoView({behavior:"smooth"});}};
+    const _cc=sp.querySelector(".cover-corner");if(_cc)_cc.onclick=e=>{e.stopPropagation();toggleReadingInPlace(b.title,b.author,sp,b.key);};
     // hovering a book slides its same-row neighbors aside (no overlap) so you can sweep across; edge books expand left and push the preceding ones
     const slide=on=>{const expW=size==="s"?118:size==="l"?158:140,delta=Math.max(0,expW-sp.offsetWidth);
       const left=sp.classList.contains("expand-left"),dir=left?-1:1,myBottom=sp.offsetTop+sp.offsetHeight;
@@ -199,7 +207,7 @@ function paginateShelf(shelf,spineEls){
   const cs=getComputedStyle(shelf),padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0;
   const full=shelf.clientWidth-padL-padR;
   if(full<=0)return; // shelf not laid out (library tab hidden) — re-runs when it becomes visible
-  const gap=12,gutter=58; // gutter reserves room for the flip arrow (kept in sync with .shelf.paged padding-right)
+  const gap=12,gutter=110; // gutter reserves room for the flip arrows (prev+next, kept in sync with .shelf.paged padding-right)
   const widths=spineEls.map(el=>el.offsetWidth);
   const pack=avail=>{const rows=[[]];let w=0;widths.forEach((wd,idx)=>{const add=(rows[rows.length-1].length?gap:0)+wd;if(w+add>avail&&rows[rows.length-1].length){rows.push([idx]);w=wd;}else{rows[rows.length-1].push(idx);w+=add;}});return rows;};
   if(pack(full).length<=2){SHELF_PAGE=0;return;} // fits in two rows — no paging
@@ -208,10 +216,13 @@ function paginateShelf(shelf,spineEls){
   const lo=SHELF_PAGE*2,show=new Set([...(rows[lo]||[]),...(rows[lo+1]||[])]);
   spineEls.forEach((el,idx)=>{el.style.display=show.has(idx)?"":"none";});
   shelf.classList.add("paged");
-  const btn=document.createElement("button");btn.className="shelf-flip";btn.type="button";
-  btn.innerHTML="▸";btn.title=`More books — page ${SHELF_PAGE+1} of ${pages}`;btn.setAttribute("aria-label","Show more books");
-  btn.onclick=e=>{e.stopPropagation();SHELF_PAGE=(SHELF_PAGE+1)%pages;renderShelf(SHELF_BOOKS);};
-  shelf.appendChild(btn);}
+  // both back + forward arrows are always present; each disables at its end of the range
+  const mkflip=(cls,sym,lab,disabled,go)=>{const fb=document.createElement("button");fb.className="shelf-flip"+cls;fb.type="button";
+    fb.innerHTML=sym;fb.title=lab;fb.setAttribute("aria-label",lab);
+    if(disabled)fb.disabled=true;else fb.onclick=e=>{e.stopPropagation();go();renderShelf(SHELF_BOOKS);};
+    shelf.appendChild(fb);};
+  mkflip(" prev","◂",`Previous books (page ${SHELF_PAGE} of ${pages})`,SHELF_PAGE<=0,()=>{SHELF_PAGE=Math.max(0,SHELF_PAGE-1);});
+  mkflip("","▸",`More books (page ${SHELF_PAGE+2} of ${pages})`,SHELF_PAGE>=pages-1,()=>{SHELF_PAGE=Math.min(pages-1,SHELF_PAGE+1);});}
 function render(){const list=document.getElementById("list");list.innerHTML="";const q=QUERY.toLowerCase();
   const books=booksWithEmpty();
   if(SORT==="author")books.sort((a,b)=>(a.author||"￿").localeCompare(b.author||"￿")||a.title.localeCompare(b.title));
@@ -234,15 +245,13 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     const isEmpty=book.empty&&!book.clips.length;
     if(!clips.length&&!isEmpty)return;shown+=clips.length;
     const sec=document.createElement("section");sec.className="book"+(book.reading?" reading":"")+(isEmpty?" empty-book":"");sec.id="book-"+book.key;
-    const readMark=`<button class="read-mark${book.reading?" on":""}" type="button" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading"><svg viewBox="0 0 16 20" aria-hidden="true"><path class="rm-flag" d="M2.5 1.5h11v17l-5.5-3.6-5.5 3.6z"/><circle class="rm-dot" cx="8" cy="7.6" r="3"/></svg></button>`;
-    const cornerTri=`<button class="book-corner-tri${book.reading?" on":""}" type="button" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}" aria-label="Currently reading"></button>`;
+    const readBtn=`<button class="book-reading" type="button" data-on="${book.reading?1:0}" title="${book.reading?"Currently reading — click to clear":"Mark as currently reading"}">reading</button>`;
     const tally=isEmpty?`<span class="tally">empty</span>`:`<span class="tally">${clips.length} ✦</span>`;
-    sec.innerHTML=`${cornerTri}<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="title">${escHtml(book.title)}</span>${readMark}${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}${tally}<button class="book-del" title="${isEmpty?"Delete this empty book":"Delete this book and all its highlights"}" aria-label="Delete book">✕</button><span class="caret" aria-hidden="true"></span></div><div class="clips"></div>`;
+    sec.innerHTML=`<div class="book-head"><span class="ribbon" style="background:linear-gradient(180deg,${shade(color,18)},${color});--rcol:${color}"></span><span class="title">${escHtml(book.title)}</span>${readBtn}${book.author?`<span class="author">${escHtml(book.author)}</span>`:""}${tally}<button class="book-del" title="${isEmpty?"Delete this empty book":"Delete this book and all its highlights"}" aria-label="Delete book">✕</button><span class="caret" aria-hidden="true"></span></div><div class="clips"></div>`;
     if(COLLAPSED.has(book.key))sec.classList.add("collapsed");
     const wrap=sec.querySelector(".clips");
     sec.querySelector(".book-head").onclick=()=>{const col=sec.classList.toggle("collapsed");if(col)COLLAPSED.add(book.key);else COLLAPSED.delete(book.key);};
-    const _togR=e=>{e.stopPropagation();toggleReading(book.title,book.author);};
-    sec.querySelector(".read-mark").onclick=_togR;sec.querySelector(".book-corner-tri").onclick=_togR;
+    sec.querySelector(".book-reading").onclick=e=>{e.stopPropagation();toggleReading(book.title,book.author);};
     sec.querySelector(".book-del").onclick=e=>{e.stopPropagation();
       const removed=STATE.clips.filter(c=>cleanTitle(c.title)===book.title&&(c.author||"")===(book.author||""));
       const warn=isEmpty?`Delete the empty book “${book.title}”? You can undo.`:`Delete “${book.title}” and all ${removed.length} of its highlight${removed.length===1?"":"s"}? You can undo.`;
@@ -367,7 +376,8 @@ function showSurprise(){const hl=STATE.clips.filter(c=>c.type!=="note");if(!hl.l
   CURRENT_SURPRISE=c;
   const txtEl=document.getElementById("spText");
   const locEl=document.getElementById("spLoc"),titleEl=document.getElementById("spTitle"),authEl=document.getElementById("spAuthor");
-  if(locEl)locEl.textContent=c.page?("p. "+c.page):(c.loc?("loc "+c.loc):"");
+  const spLoc=c.loc&&!/^(manual|scan|handoff)/i.test(c.loc)?c.loc:"";  // hide synthetic locs (manual/scan/handoff have no real page)
+  if(locEl)locEl.textContent=c.page?("p. "+c.page):(spLoc?("loc "+spLoc):"");
   if(titleEl)titleEl.textContent=cleanTitle(c.title);
   if(authEl)authEl.textContent=c.author||"";
   if(c.cat==="vocab"&&isVocabWord(c)){
@@ -387,6 +397,8 @@ function showSurprise(){const hl=STATE.clips.filter(c=>c.type!=="note");if(!hl.l
 
 /* ---------- Decks ---------- */
 function uid(){return "d"+Math.random().toString(36).slice(2,8);}
+// the two starter decks seeded for a fresh library (file import or first manual/phone add)
+function defaultDecks(){return [{id:uid(),name:"Vocabulary",tags:{vocab:true,quotes:false,topic:false}},{id:uid(),name:"Topics of interest",tags:{vocab:false,quotes:false,topic:true}}];}
 function clipKeyTerm(c){const html=annotateTerms(c.text);const m=html.match(/data-term="([^"]*)"/);
   if(m)return m[1].replace(/&quot;/g,'"').replace(/&amp;/g,"&");return lookupForm(c.text);}
 function clipsForDeck(deck){const inc=new Set(deck.include||[]);
@@ -1020,7 +1032,6 @@ function renderDropPanel(){const box=document.getElementById("dropPanel");if(typ
         </div>`).join("")}
       </div>
       <div class="dp-actions">
-        <button class="btn sm" data-act="new">＋ New library</button>
         <button class="btn ghost sm" data-act="restore">Restore from backup</button>
         ${activeLib&&activeLib.clips&&activeLib.clips.length?`<button class="btn ghost sm" data-act="export">Export JSON backup</button><button class="btn ghost sm" data-act="dedup">Remove duplicates</button>`:""}
       </div>
@@ -1142,9 +1153,8 @@ function renderDeckContents(){const box=document.getElementById("deckContents");
       sections+=`<div class="deck-section"><div class="deck-col-head dc-book"><span style="font-style:italic">${escHtml(author)}</span></div><div class="deck-words">${inner||'<span class="deck-empty">none</span>'}</div></div>`;
     });
   }else{
-    const subLab=DECK_SORT==="reviewed"?"most reviewed":DECK_SORT==="hard"?"hardest first":DECK_SORT==="recent"?"recently reviewed":"rarest first";
-    sections+=section("vocab",subLab,vocab.length?sortVocab(vocab).map(vBtn).join(""):"","vocab");
-    sections+=section("topic of interest",DECK_SORT==="rare"?"":subLab,topics.length?sortTopics(topics).map(tBtn).join(""):"","topic");
+    sections+=section("vocab","",vocab.length?sortVocab(vocab).map(vBtn).join(""):"","vocab");
+    sections+=section("topic of interest","",topics.length?sortTopics(topics).map(tBtn).join(""):"","topic");
   }
   const flaggedCards=flagged.map(id=>byId.get(id)).filter(Boolean);
   // flagged renders as its own list (like vocab/topic): each entry jumps to the library, with an unflag ✕
@@ -1431,7 +1441,7 @@ function ingest(text,filename,fromSample,opts){let clips=[];
   // their own data, clear the sample first so it doesn't merge in.
   // If the active library is the built-in sample and the user imports their own data,
   // start a fresh "My Library" instead of merging into the sample.
-  if(IS_SAMPLE&&!fromSample){createLibraryQuiet("My Library");}
+  if(IS_SAMPLE&&!fromSample){createLibraryQuiet(uniqueLibName("My Library"));}
   if(/\.html?$/i.test(filename)||/<html|class="?bookTitle/i.test(text))clips=parseHtml(text);
   else if(/\.csv$/i.test(filename))clips=parseCsv(text);else clips=parseClippings(text);
   if(!clips.length){toast("Couldn't find any highlights in that file.");return;}
@@ -1443,8 +1453,7 @@ function ingest(text,filename,fromSample,opts){let clips=[];
   const hadData=STATE.clips.length>0;
   if(!hadData){
     clips.forEach((c,i)=>{c.id=i;c.batch=batch;});STATE.clips=clips;
-    STATE.decks=[{id:uid(),name:"Vocabulary",tags:{vocab:true,quotes:false,topic:false}},{id:uid(),name:"Topics of interest",tags:{vocab:false,quotes:false,topic:true}}];
-    ACTIVE_DECK=STATE.decks[0].id;
+    if(!STATE.decks||!STATE.decks.length){STATE.decks=defaultDecks();ACTIVE_DECK=STATE.decks[0].id;} // don't clobber decks the user built in an empty library
     toast(`Imported ${clips.length} highlight${clips.length===1?"":"s"}.`);
     IMPORT_LOG.unshift({batch,date:when,modified,name:filename||"import",added:clips.length,updated:0,total:STATE.clips.length,fps:clips.map(c=>c.fp)});
   }else{
@@ -1579,6 +1588,9 @@ function removeImportBatch(batchId,idx){
   // fall back to the batch tag for older entries.
   if(entry&&entry.fps&&entry.fps.length){const set=new Set(entry.fps);STATE.clips=STATE.clips.filter(c=>!set.has(c.fp));}
   else if(batchId)STATE.clips=STATE.clips.filter(c=>c.batch!==batchId);
+  // revert any text changes this batch made (restore-merge records prior text in entry.edits)
+  if(entry&&entry.edits&&entry.edits.length){const byFp=new Map(STATE.clips.map(c=>[c.fp,c]));
+    entry.edits.forEach(e=>{const c=byFp.get(e.fp);if(c&&e.prevText!=null){c.text=e.prevText;if(!c.catLocked)c.cat=autoCategorize(c);}});}
   // drop the matching log row
   if(entry)IMPORT_LOG=IMPORT_LOG.filter(r=>r!==entry);
   else if(batchId)IMPORT_LOG=IMPORT_LOG.filter(r=>r.batch!==batchId);
@@ -1638,6 +1650,10 @@ function importLibraryJson(text){try{const d=JSON.parse(text);
     // Default: merge backup into the current library (no duplicate library). Offer "restore into a new library" instead.
     const intoNew=!curHas||!confirm(`Restore this backup into the current library “${cur.name}”?\n\nOK — merge into the current library.\nCancel — restore as a separate new library.`);
     if(intoNew){
+      // if an identical backup is already restored (same clips), switch to it instead of forking a near-duplicate library
+      const sig=clips.map(c=>c.fp).sort().join("|");
+      const dup=LIBRARIES.find(l=>(l.clips||[]).length===clips.length&&(l.clips||[]).map(c=>c.fp||clipFp(c)).sort().join("|")===sig);
+      if(dup){syncActiveLib();ACTIVE_LIB=dup.id;loadLibIntoState(dup);saveState();render();renderDropPanel();toast(`That backup is already restored as “${dup.name}”.`);return;}
       const lib={id:newLibId(),name:uniqueLibName((libsrc.name||"Imported library")+""),clips,decks:libsrc.decks||[],activeDeck:(libsrc.decks&&libsrc.decks[0]&&libsrc.decks[0].id)||null,
         catRules:[],reviewLog:libsrc.reviewLog||[],importLog:libsrc.importLog||[],isSample:false};
       LIBRARIES.push(lib);ACTIVE_LIB=lib.id;loadLibIntoState(lib);saveState();
@@ -1646,10 +1662,15 @@ function importLibraryJson(text){try{const d=JSON.parse(text);
     }
     // merge into current library by fingerprint — identical backup adds nothing (no duplicate)
     const byFp=new Map(STATE.clips.map(c=>[c.fp,c]));
-    let added=0,changed=0,maxId=STATE.clips.reduce((m,c)=>Math.max(m,c.id||0),0);
+    const batch=newLibId(),when=Date.now();
+    let added=0,changed=0,maxId=STATE.clips.reduce((m,c)=>Math.max(m,c.id||0),0);const addedFps=[],edits=[];
     clips.forEach(c=>{const ex=byFp.get(c.fp);
-      if(!ex){c.id=++maxId;STATE.clips.push(c);byFp.set(c.fp,c);added++;}
-      else if(ex.text!==c.text){if(ex.edited)ex.incoming=c.text;else{ex.text=c.text;ex.cat=ex.catLocked?ex.cat:autoCategorize(ex);}changed++;}});
+      if(!ex){c.id=++maxId;c.batch=batch;STATE.clips.push(c);byFp.set(c.fp,c);added++;addedFps.push(c.fp);}
+      else if(ex.text!==c.text){edits.push({fp:ex.fp,prevText:ex.text}); // remember prior text so the restore is undoable
+        if(ex.edited)ex.incoming=c.text;else{ex.text=c.text;ex.cat=ex.catLocked?ex.cat:autoCategorize(ex);}changed++;}});
+    // log the restore as an import batch so it shows in the history with an undo (✕) like any import
+    if(added||changed)IMPORT_LOG.unshift({batch,date:when,name:`restore: ${libsrc.name||"backup"}`,added,updated:changed,total:STATE.clips.length,fps:addedFps,edits});
+    IMPORT_LOG=IMPORT_LOG.slice(0,100);
     saveState();
     render();renderDropPanel(); // stay on import screen either way
     if(added||changed)toast(`Restored into "${cur.name}": ${added} new, ${changed} updated.`);

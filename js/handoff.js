@@ -171,12 +171,19 @@ function receiveHandoff(payload, batch){
   batch = batch || "handoff";
   const items = Array.isArray(payload) ? payload : [payload];
   // Add to the CURRENT library (create one only if none exists). If the current
-  // library is the built-in sample, adopt it as a real library in place so the
-  // handoff joins what's on screen instead of forking off a separate library.
+  // library is the built-in sample, fork a fresh library instead of mixing the
+  // highlight into the sample's clips (parallels the file-import path in ingest).
+  const curLib = LIBRARIES.find(l => l.id === ACTIVE_LIB);
+  if ((typeof IS_SAMPLE !== "undefined" && IS_SAMPLE) || (curLib && curLib.isSample)){
+    if (typeof createLibraryQuiet === "function")
+      createLibraryQuiet(typeof uniqueLibName === "function" ? uniqueLibName("My Library") : "My Library");
+  }
   const lib = ensureActiveLib(undefined, false);
-  if (lib.isSample || (typeof IS_SAMPLE !== "undefined" && IS_SAMPLE)){
-    lib.isSample = false;
-    if (lib.name === "Sample") lib.name = "My Library";
+  lib.isSample = false;
+  // seed starter decks for a brand-new library (manual/phone entry skips file-import's deck seeding)
+  if (typeof defaultDecks === "function" && (!STATE.decks || !STATE.decks.length)){
+    STATE.decks = defaultDecks();
+    if (typeof ACTIVE_DECK !== "undefined") ACTIVE_DECK = STATE.decks[0].id;
   }
 
   const byFp = new Map(STATE.clips.map(c => [c.fp, c]));

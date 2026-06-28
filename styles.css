@@ -24,8 +24,8 @@
   }
   /* light-mode accent: must come AFTER the baked :root above or it gets clobbered (equal specificity, later wins). Deeper gold so it reads on parchment. */
   [data-mode="light"]{
-    --accent:#9a7008;--gold:#9a7008;--term-line:#9a7008;--cat-vocab:#9a7008;
-    --highlighter:rgba(154,112,8,.22);
+    --accent:#c0392b;--gold:#c79a2e;--term-line:#9a7008;--cat-vocab:#d4a017;
+    --highlighter:rgba(212,160,23,.22);
     /* keep the tags clearly distinct from each other and from the brightened jewel covers on parchment */
     --cat-quotes:#b23124;--cat-topic:#1f6bb5;--cat-none:#8b8a86;
   }
@@ -33,6 +33,8 @@
   [data-mode="light"] .book-spine .cloth{filter:url(#clothTex) saturate(1.38) brightness(1.12)}
   [data-mode="light"] .pace-cover .pc-cloth{filter:url(#clothTex) saturate(1.38) brightness(1.12)}
   [data-mode="light"] .pace-dot,[data-mode="light"] .lol-dot{filter:saturate(1.32) brightness(1.08)}
+  /* selected segmented toggles fill with the red accent in light mode — dark label would be unreadable, so go white */
+  [data-mode="light"] .book-size-toggle button[data-on="1"],[data-mode="light"] .bs-groupby button[data-on="1"],[data-mode="light"] .deck-groupby button[data-on="1"]{color:#fff}
 
   /* spine cloth colors (jewel) */
   *{box-sizing:border-box}
@@ -105,7 +107,7 @@
   .surprise .sp-again{position:absolute;right:7px;bottom:7px;z-index:4;background:var(--cat-stock);border:1px solid var(--cat-soft);color:var(--cat-soft);border-radius:3px;width:22px;height:22px;cursor:pointer;font-size:12px;line-height:1;padding:0}
   .surprise .sp-again:hover{background:var(--accent);color:#2a2014;border-color:var(--accent)}
 
-  .btn{font-family:var(--head);font-size:15px;letter-spacing:0;text-transform:none;background:var(--accent);color:var(--paper);border:none;padding:10px 18px;border-radius:3px;cursor:pointer;transition:.12s;font-weight:500}
+  .btn{box-sizing:border-box;font-family:var(--head);font-size:15px;letter-spacing:0;text-transform:none;background:var(--accent);color:var(--paper);border:1px solid transparent;padding:10px 18px;border-radius:3px;cursor:pointer;transition:.12s;font-weight:500}
   .btn:hover{filter:brightness(1.1)}
   .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--rule-strong)}
   .btn.ghost:hover{background:var(--accent);color:var(--paper);border-color:var(--accent)}
@@ -135,8 +137,11 @@
   .shelf.size-m .book-spine{height:172px;width:46px}
   .shelf.size-l .book-spine{height:200px;width:52px}
   .shelf{position:relative;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:20px 18px 0;border-radius:4px 4px 0 0;background:none}
-  .shelf.paged{padding-right:76px} /* reserve a gutter for the flip arrow (18 base + 58 gutter, in sync with paginateShelf) */
+  .shelf.paged{padding-right:128px} /* reserve a gutter for the flip arrows (18 base + 110 gutter, in sync with paginateShelf) */
   .shelf-flip{position:absolute;right:12px;bottom:8px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--rule-strong);color:var(--accent);border-radius:4px;cursor:pointer;font-size:21px;line-height:1;z-index:21;transition:.12s;box-shadow:0 4px 10px -6px rgba(0,0,0,.5)}
+  .shelf-flip.prev{right:64px}
+  .shelf-flip:disabled{opacity:.3;cursor:default}
+  .shelf-flip:disabled:hover{border-color:var(--rule-strong);background:var(--card)}
   .shelf-flip:hover{border-color:var(--accent);background:var(--paper-2)}
   [data-mode="light"] .shelf{background:none}
   .shelf:after{content:"";position:absolute;left:0;right:0;bottom:-13px;height:13px;background:linear-gradient(180deg,var(--shelf-wood),var(--shelf-edge));border-radius:0 0 3px 3px;box-shadow:0 7px 16px -6px rgba(0,0,0,.55)}
@@ -168,9 +173,11 @@
   .shelf .book-spine:hover .vtitle,.shelf .book-spine:hover .scount{opacity:0}
   .shelf .book-spine:hover .htitle,.shelf .book-spine:hover .cover-orn,.shelf .book-spine:hover .cauthor{opacity:1}
   .shelf .book-spine:hover .band{opacity:0}
-  /* currently-reading ribbon on the spine corner */
-  .book-spine.reading .reading-flag{position:absolute;top:0;right:0;width:0;height:0;z-index:6;border-top:18px solid var(--gold);border-left:18px solid transparent}
-  .book-spine.reading .reading-flag:after{content:"";position:absolute;top:-15px;right:1px;width:5px;height:5px;border-radius:50%;background:rgba(0,0,0,.32)}
+  /* folded gold corner on the cover: faint on hover of the expanded cover (click to toggle reading), solid gold when reading */
+  .book-spine .cover-corner{position:absolute;top:0;right:0;width:0;height:0;z-index:7;cursor:pointer;border-top:0 solid var(--gold);border-left:0 solid transparent;opacity:0;transition:.16s}
+  .shelf .book-spine:hover .cover-corner{border-top-width:22px;border-left-width:22px;opacity:.4}
+  .book-spine.reading .cover-corner{border-top-width:22px;border-left-width:22px;opacity:1}
+  .shelf .book-spine.reading:hover .cover-corner{opacity:1}
   /* spine decoration variants — randomly mixed per book (B matte band / C tooled hairlines / E gilt cartouche) */
   .book-spine .spframe{position:absolute;z-index:1;display:none;transition:opacity .35s}
   .book-spine.v-b .band{height:8px;background:rgba(0,0,0,.28);box-shadow:0 -1px 0 rgba(232,210,120,.35),0 1px 0 rgba(232,210,120,.2)}
@@ -200,32 +207,21 @@
 
   /* ===== book section + bookmark ribbon ===== */
   .book{margin-top:34px;scroll-margin-top:80px;position:relative}
-  /* reading mark just right of the title: bookmark whose inner circle fills gold when reading; shows on hover */
-  .read-mark{display:inline-flex;align-items:center;justify-content:center;width:18px;height:23px;padding:0;margin-left:8px;border:none;background:none;cursor:pointer;flex:none;vertical-align:middle;opacity:0;transition:opacity .12s}
-  .book-head:hover .read-mark{opacity:1}
-  .read-mark svg{width:15px;height:19px}
-  .read-mark .rm-flag{fill:none;stroke:var(--ink-soft);stroke-width:1.4;transition:.14s}
-  .read-mark .rm-dot{fill:none;stroke:var(--ink-soft);stroke-width:1.3;transition:.14s}
-  .read-mark:hover .rm-flag,.read-mark:hover .rm-dot{stroke:var(--gold)}
-  .read-mark.on .rm-flag{stroke:var(--gold)}
-  .read-mark.on .rm-dot{fill:var(--gold);stroke:var(--gold)}
-  /* folded-corner bookmark: shows faint on hover (an option), solid gold when reading; click toggles */
-  .book-corner-tri{position:absolute;top:0;right:0;width:0;height:0;z-index:8;padding:0;background:none;cursor:pointer;
-    border-top:22px solid var(--gold);border-left:22px solid transparent;opacity:0;transition:opacity .14s}
-  .book:hover .book-corner-tri{opacity:.3}
-  .book-corner-tri.on{opacity:1}
   .book-head{position:sticky;top:57px;z-index:6;background:var(--paper);display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;padding-top:6px;margin-bottom:2px;cursor:pointer;padding-left:40px}
   .ribbon{position:absolute;left:6px;top:-6px;width:20px;height:50px;box-shadow:0 2px 4px rgba(0,0,0,.4);z-index:2}
   .ribbon:after{content:"";position:absolute;bottom:-8px;left:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:8px solid var(--rcol,#6e2a26)}
-  .ribbon:before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:7px;height:7px;border:1px solid rgba(232,210,120,.6);border-radius:50%}
+  /* inner circle on the bookmark ribbon: empty by default, fills gold when the book is currently reading */
+  .ribbon:before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:7px;height:7px;border:1px solid rgba(232,210,120,.6);border-radius:50%;transition:.14s}
+  .book.reading .ribbon:before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 4px var(--gold)}
   .book-head .idx{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
-  .book-head .title{font-size:26px;font-weight:600;letter-spacing:-.3px;flex:1;font-family:var(--head)}
+  .book-head .title{font-size:26px;font-weight:600;letter-spacing:-.3px;font-family:var(--head)}
   .book-head .author{font-style:italic;color:var(--ink-soft);font-size:16px;font-family:var(--display)}
   .book-head .tally{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
   .book-head .caret{color:var(--ink-soft);font-family:var(--mono);font-weight:700;font-size:16px;line-height:1;width:16px;text-align:center;flex:none}
   .book-head .caret:before{content:"\2212"} /* minus = expanded (click to collapse) */
   .book.collapsed .caret:before{content:"+"} /* plus = collapsed (click to expand) */
-  .book-head .book-reading{border:1px solid var(--rule-strong);background:none;color:var(--ink-soft);font-family:var(--mono);font-size:10px;letter-spacing:.02em;line-height:1;padding:4px 8px;border-radius:3px;cursor:pointer;opacity:0;transition:.12s;white-space:nowrap}
+  .book-head .book-reading{margin-right:auto;align-self:center;border:1px solid var(--rule-strong);background:none;color:var(--ink-soft);font-family:var(--mono);font-size:10px;letter-spacing:.02em;line-height:1;padding:4px 8px;border-radius:3px;cursor:pointer;opacity:0;transition:.12s;white-space:nowrap}
+  .book-head .book-reading[data-on="1"]{opacity:1}
   .book-head:hover .book-reading{opacity:1}
   .book-head .book-reading[data-on="1"]{color:#3a2c12;background:var(--gold);border-color:var(--gold)}
   .book-head .book-del{border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;padding:0 2px;cursor:pointer;opacity:0;transition:.12s}
@@ -452,7 +448,7 @@
   .pace-xt{position:absolute;transform:translateX(-50%);font-family:var(--mono);font-size:9.5px;color:var(--ink-soft);white-space:nowrap}
   .pace-xaxis-lab{text-align:center;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-soft);margin-top:5px}
   .pace-lists{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:6px}
-  .pace-col-h{font-family:var(--display);font-size:17px;font-weight:700;color:var(--accent);margin:0 0 10px}
+  .pace-col-h{font-family:var(--head);font-size:17px;font-weight:800;color:var(--accent);margin:0 0 10px}
   .lol{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:13px}
   .lol-nm{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink);font-family:var(--head)}
   .lol-track{flex:0 0 84px;height:2px;background:var(--rule);position:relative;border-radius:2px}
@@ -780,15 +776,19 @@
   /* ===== phones ===== */
   @media (max-width:600px){
     .wrap{padding:0 14px 110px}
-    header.mast{padding:18px 0 6px;gap:12px}
-    .mast .sub{font-size:14px;margin-top:6px}
-    /* controls + count share one row above the tabs instead of stacking far right */
-    .mast .topright{flex-direction:row;align-items:center;justify-content:space-between;width:100%;gap:12px}
-    .ctrls{align-items:flex-start}
-    .mast .count{text-align:right}
+    /* single column; flatten brandwrap/topright so every masthead element can be ordered, with tabs pinned last (just above the divider) */
+    header.mast{padding:18px 0 6px;gap:12px;flex-direction:column;align-items:stretch}
+    .mast .brandwrap,.mast .topright{display:contents}
+    .mast .wordmark{order:1}
+    .mast .sub{order:2;font-size:14px;margin-top:6px}
+    .mast .count{order:3;text-align:left}
+    .mast .surprise{order:4}
+    .mast .visitor-info{order:5}
+    .mast .ctrls{order:6;align-items:flex-start}
+    .tabs{order:7}
     .mast .count b{font-size:24px}
     /* tabs wrap to two rows (scrolling would clip the Libraries dropdown) with comfortable tap targets */
-    .tabs{flex-wrap:wrap;margin-top:10px;gap:6px}
+    .tabs{flex-wrap:wrap;margin-top:4px;gap:6px}
     .tab{padding:10px 15px 8px;font-size:14px}
     .manage-btn{padding:10px 13px 8px;font-size:14px}
     .book-head{padding-left:22px}
@@ -800,7 +800,14 @@
     .theme-map-canvas svg{height:360px}
   }
   /* touch devices have no pointer to track — the oil-lamp cursor never moves, so hide it */
-  @media (pointer:coarse){#lampCursor,#lampHalo{display:none!important}}
+  @media (pointer:coarse){#lampCursor,#lampHalo{display:none!important}
+    /* no hover on touch — don't expand the cover (it would stick); tapping a spine jumps to the book's highlights */
+    .shelf .book-spine:hover .spine-inner{width:100%!important}
+    .shelf .book-spine:hover .vtitle,.shelf .book-spine:hover .scount{opacity:1}
+    .shelf .book-spine:hover .htitle,.shelf .book-spine:hover .cover-orn,.shelf .book-spine:hover .cauthor{opacity:0}
+    .shelf .book-spine:hover .band,.shelf .book-spine:hover .spframe{opacity:1}
+    .shelf .book-spine:hover .cover-corner{opacity:0}
+    .shelf .book-spine.reading:hover .cover-corner{opacity:1}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}.flame,#lampHalo{animation:none!important}}
 
   /* ===== merged from iter5: theme map, recap, memory search, divider ===== */
@@ -856,8 +863,8 @@
   /* light-mode theme map: tan nodes/faint edges blend into the cream canvas — give them firmer fills, darker edges, and ink text with no washed-out halo */
   [data-mode="light"] .theme-map-canvas{background:radial-gradient(65% 55% at 50% 44%,rgba(168,127,36,.10),transparent 62%),#efe6cf}
   [data-mode="light"] .theme-node .n-ring{fill:#e6d4a8;stroke:#9c7a2a;stroke-width:1.3}
-  [data-mode="light"] .theme-node[data-sel="1"] .n-ring{fill:#b5870f;stroke:#4f3a06;stroke-width:2.4}
-  [data-mode="light"] .theme-node[data-sel="1"] text{fill:#1c1206}
+  [data-mode="light"] .theme-node[data-sel="1"] .n-ring{fill:var(--accent);stroke:#7a1c17;stroke-width:2.4;filter:none} /* selected theme = red accent (CSS filter overrides the gold SVG glow in light) */
+  [data-mode="light"] .theme-node[data-sel="1"] text{fill:#fff}
   [data-mode="light"] .theme-node text{fill:#2a1d0f;stroke:#efe6cf;stroke-width:3.4px}
   [data-mode="light"] .theme-edge{stroke:#9c7a2a;stroke-opacity:.55}
   .conn-group.focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}

@@ -84,6 +84,7 @@ document.addEventListener("keydown",e=>{if(e.key!=="Escape")return;
   if(d&&!d.classList.contains("hidden")&&typeof closeImport==="function")closeImport();});
 
 document.getElementById("pickBtn").onclick=()=>fileInput.click();
+(function(){const nb=document.getElementById("newLibBtn");if(nb)nb.onclick=()=>{const n=prompt("Name the new library:","My Library");if(n!==null)createLibrary(n.trim()||"My Library");};})();
 document.querySelectorAll(".js-scan").forEach(b=>b.onclick=()=>{if(typeof openAddHighlight==="function")openAddHighlight();else if(typeof startHandoff==="function")startHandoff();});
 document.getElementById("manageBtn").onclick=e=>{e.stopPropagation();const m=document.getElementById("libMenu");if(m.classList.contains("show"))closeLibMenu();else openLibMenu();};
 // import all chosen files in sequence, staying in the import panel so the user

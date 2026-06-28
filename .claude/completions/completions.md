@@ -31,3 +31,4 @@
 ## 58e44c7 / 08f75f2 / 42a418d — index.html split: extract JS, extract CSS, reorg rules
 ## 48569f2 — feat: reading marks, collapse persistence, dedup libraries, light-mode overhaul (2026-06-27) <!--auto:48569f2-->
 ## 5ff6bd1 — chore: stop tracking .DS_Store (macOS Finder junk; already in .gitignore) (2026-06-27) <!--auto:5ff6bd1-->
+## 69532fc — feat: reading-mark hover toggle + corner triangle, import-screen stickiness, light fixes (2026-06-27) <!--auto:69532fc-->
