@@ -104,8 +104,8 @@ drop.addEventListener("drop",e=>{const files=[...e.dataTransfer.files];if(!files
       else ingest(r.result,f.name,false,{navigate:false,modified:f.lastModified});next();};
     r.readAsText(f);};
   next();});
-document.getElementById("q").oninput=e=>{QUERY=e.target.value;render();renderMemoryResults();const cb=document.getElementById("clearSearch");if(cb)cb.style.display=e.target.value?"block":"none";};
-(function(){const cb=document.getElementById("clearSearch");if(cb)cb.onclick=()=>{const q=document.getElementById("q");if(q)q.value="";QUERY="";const box=document.getElementById("memoryResults");if(box){box.classList.remove("show");box.innerHTML="";}cb.style.display="none";render();if(q)q.focus();};})();
+document.getElementById("q").oninput=e=>{QUERY=e.target.value;JUMP_FP=null;render();renderMemoryResults();const cb=document.getElementById("clearSearch");if(cb)cb.style.display=e.target.value?"block":"none";};
+(function(){const cb=document.getElementById("clearSearch");if(cb)cb.onclick=()=>{const q=document.getElementById("q");if(q)q.value="";QUERY="";JUMP_FP=null;const box=document.getElementById("memoryResults");if(box){box.classList.remove("show");box.innerHTML="";}cb.style.display="none";render();if(q)q.focus();};})();
 document.getElementById("sortSel").onchange=e=>{SORT=e.target.value;render();};
 document.getElementById("libCollapse").onclick=()=>{
   const btn=document.getElementById("libCollapse");
@@ -130,10 +130,13 @@ document.querySelectorAll("#reviewCats .chip").forEach(ch=>{ch.onclick=()=>{ch.d
 document.getElementById("reviewStartBtn").onclick=startReview;
 document.getElementById("connAll").onchange=renderConnections;
 document.getElementById("connCollapse").onclick=()=>{
+  const btn=document.getElementById("connCollapse");
   const groups=[...document.querySelectorAll("#connList .conn-group")];
   const anyOpen=groups.some(g=>!g.classList.contains("collapsed"));
   groups.forEach(g=>g.classList.toggle("collapsed",anyOpen));
-  document.getElementById("connCollapse").textContent=anyOpen?"Expand all":"Collapse all";
+  btn.dataset.collapsed=anyOpen?"1":"0";
+  btn.title=anyOpen?"Expand all themes":"Collapse all themes";
+  btn.setAttribute("aria-label",btn.title);
 };
 document.querySelectorAll(".xp-tab").forEach(t=>t.onclick=()=>{XP_VIEW=t.dataset.xp;renderExplore();});
 document.querySelectorAll("#tlGrain button").forEach(b=>b.onclick=()=>{TL_GRAIN=b.dataset.grain;document.querySelectorAll("#tlGrain button").forEach(x=>x.dataset.on=x===b?1:0);renderTimeline();});

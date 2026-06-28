@@ -183,7 +183,7 @@
   <div id="pageTimeline">
     <div class="tl-headrow">
       <div class="tl-head" id="tlHead">Reading timeline</div>
-      <div class="tl-grain" id="tlGrain"><button data-grain="week" data-on="1">week</button><button data-grain="day" data-on="0">day</button></div>
+      <div class="tl-grain" id="tlGrain"><button data-grain="day" data-on="0">day</button><button data-grain="week" data-on="1">week</button><button data-grain="month" data-on="0">month</button></div>
     </div>
     <div class="tl-card">
       <div class="tl-chartwrap"><div id="tlChart"></div><div class="tl-readout" id="tlReadout"></div></div>
@@ -224,9 +224,9 @@
 
     <div class="xp-panel" id="xpConnections">
       <div class="conn-bar">
-        <button class="btn ghost sm" id="connCollapse">Collapse all</button>
-        <div style="flex:1"></div>
         <label class="conn-toggle"><input type="checkbox" id="connAll"> Include single-book themes</label>
+        <div style="flex:1"></div>
+        <button class="collapse-toggle" id="connCollapse" data-collapsed="0" title="Collapse all themes" aria-label="Collapse all themes"><svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path class="ct-up" d="M4 7 L8 3 L12 7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/><path class="ct-dn" d="M4 9 L8 13 L12 9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
       <div id="connList"></div>
     </div>

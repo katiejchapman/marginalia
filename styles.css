@@ -24,7 +24,7 @@
   }
   /* light-mode accent: must come AFTER the baked :root above or it gets clobbered (equal specificity, later wins). Deeper gold so it reads on parchment. */
   [data-mode="light"]{
-    --accent:#c0392b;--gold:#c79a2e;--term-line:#9a7008;--cat-vocab:#d4a017;
+    --accent:#a52f25;--gold:#c79a2e;--term-line:#9a7008;--cat-vocab:#d4a017;
     --highlighter:rgba(212,160,23,.22);
     /* keep the tags clearly distinct from each other and from the brightened jewel covers on parchment */
     --cat-quotes:#b23124;--cat-topic:#1f6bb5;--cat-none:#8b8a86;
@@ -51,7 +51,7 @@
   h1,h2,h3,.display{font-family:var(--display)}
 
   /* ===== masthead ===== */
-  header.mast{padding:34px 0 14px;margin-bottom:0;display:flex;align-items:stretch;justify-content:space-between;gap:24px;flex-wrap:wrap}
+  header.mast{padding:34px 0 14px;margin-bottom:0;display:flex;align-items:stretch;justify-content:space-between;gap:24px;flex-wrap:nowrap}
   .mast .brandwrap{display:flex;flex-direction:column}
   .wordmark{display:flex;align-items:center;font-family:var(--title);font-size:60px;font-weight:600;line-height:.95;letter-spacing:-1px}
   .wordmark svg{width:90px;height:90px;margin-right:-2px;margin-left:-4px;flex:none;vertical-align:middle;position:relative;top:-3px}
@@ -69,14 +69,17 @@
   .ctrl-grid button:nth-child(odd){border-left:none}
   .ctrl-grid button[data-on="1"]{background:#c9a84a;color:#2a2014;border-color:#c9a84a} /* match the brass lamp cursor in both modes; brass borders so no dark seam beside the active cell */
   .ctrl-grid button[data-on="1"]+button{border-left-color:#c9a84a} /* the seam to the right of an active cell belongs to the inactive neighbour — brass it too */
+  /* light mode: active toggles use the red accent, not brass */
+  [data-mode="light"] .ctrl-grid button[data-on="1"]{background:var(--accent);color:#fff;border-color:var(--accent)}
+  [data-mode="light"] .ctrl-grid button[data-on="1"]+button{border-left-color:var(--accent)}
 
   .tabs{display:flex;gap:4px;margin:16px 0 0;margin-top:auto;align-items:flex-end}
   /* similar shape to the page tabs but flat (no shading) with gold lettering, same serif font */
-  .manage-btn{font-family:var(--head);font-size:14px;font-weight:500;background:var(--card);border:1px solid var(--rule-strong);color:var(--accent);padding:12px 16px 10px;border-radius:8px 8px 2px 2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.12s}
+  .manage-btn{font-family:var(--head);font-size:14px;font-weight:500;background:var(--card);border:1px solid var(--rule-strong);color:var(--accent);padding:0 16px;height:46px;border-radius:8px 8px 2px 2px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:.12s}
   .manage-btn:hover{border-color:var(--accent);background:var(--paper-2)}
   .manage-btn svg{flex:none;color:var(--accent)}
   .manage-btn .caret{font-size:11px;opacity:.8}
-  .tab{font-family:var(--head);font-size:16px;letter-spacing:0;text-transform:none;background:linear-gradient(180deg,#efe3c7 0%,#e1cfad 100%);color:#4a3724;border:1px solid #9d8257;border-bottom:2px solid #876944;padding:12px 22px 10px;border-radius:8px 8px 2px 2px;cursor:pointer;transition:.12s;font-weight:500;position:relative;box-shadow:inset 0 1px 0 rgba(255,248,230,.65),0 1px 0 rgba(0,0,0,.18)}
+  .tab{font-family:var(--head);font-size:16px;letter-spacing:0;text-transform:none;background:linear-gradient(180deg,#efe3c7 0%,#e1cfad 100%);color:#4a3724;border:1px solid #9d8257;border-bottom:2px solid #876944;padding:0 22px;height:46px;display:inline-flex;align-items:center;border-radius:8px 8px 2px 2px;cursor:pointer;transition:.12s;font-weight:500;position:relative;box-shadow:inset 0 1px 0 rgba(255,248,230,.65),0 1px 0 rgba(0,0,0,.18)}
   .tab:before{content:"";position:absolute;left:14px;right:14px;top:8px;height:1px;background:rgba(122,100,68,.35)}
   .tab:after{content:"";position:absolute;left:14px;right:14px;bottom:7px;height:1px;background:rgba(122,100,68,.22)}
   .tab[data-on="1"]{background:var(--panel);color:var(--accent);border-color:var(--rule-strong);border-bottom-color:var(--rule-strong);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 2px 0 rgba(0,0,0,.12)}
@@ -85,7 +88,8 @@
   [data-mode="light"] .tab{background:linear-gradient(180deg,#d8c8a6 0%,#cdbb94 100%);color:#6b563a;border-color:#b29a6e;border-bottom-color:#9c8458;box-shadow:inset 0 1px 0 rgba(255,250,235,.45),0 1px 0 rgba(0,0,0,.1)}
   [data-mode="light"] .tab:before{background:rgba(110,86,52,.28)}
   [data-mode="light"] .tab:after{background:rgba(110,86,52,.18)}
-  [data-mode="light"] .tab[data-on="1"]{background:linear-gradient(180deg,#fdf8ea 0%,#f7efdc 100%);color:#3a2c1a;border-color:var(--rule-strong);border-bottom-color:#fdf8ea;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 -1px 0 rgba(0,0,0,.04)}
+  [data-mode="light"] .tab[data-on="1"]{background:linear-gradient(180deg,#fdf8ea 0%,#f7efdc 100%);color:var(--accent);border-color:var(--rule-strong);border-bottom-color:#fdf8ea;box-shadow:inset 0 1px 0 rgba(255,255,255,.8),0 -1px 0 rgba(0,0,0,.04)}
+  [data-mode="light"] .wordmark .rest{color:var(--accent)}
   [data-mode="light"] .tab[data-on="1"]:before{background:rgba(173,143,94,.3)}
   [data-mode="light"] .tab[data-on="1"]:after{background:rgba(173,143,94,.18)}
 
@@ -358,6 +362,7 @@
   .tl-grain button{font-family:var(--mono);font-size:10px;letter-spacing:.02em;text-transform:lowercase;background:var(--card);color:var(--ink-soft);border:none;border-left:1px solid var(--rule);padding:4px 12px;cursor:pointer}
   .tl-grain button:first-child{border-left:none}
   .tl-grain button[data-on="1"]{background:#c9a84a;color:#2a2014}
+  [data-mode="light"] .tl-grain button[data-on="1"]{background:var(--accent);color:#fff}
   .tl-card{background:var(--card);border:1px solid var(--rule);border-radius:8px;padding:24px}
   .tl-axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--ink-soft);margin-top:8px}
   .tl-legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-family:var(--head);font-size:14px;color:var(--ink-soft)}
@@ -488,7 +493,9 @@
   .conn-toggle{font-family:var(--head);font-size:14px;color:var(--ink-soft);display:flex;align-items:center;gap:7px;cursor:pointer;white-space:nowrap}
   .conn-group{border:1px solid var(--rule);background:var(--card);border-radius:8px;margin-bottom:12px;overflow:hidden}
   .conn-head{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;border-bottom:1px solid var(--rule)}
-  .conn-term{font-family:var(--display);font-size:22px;font-weight:600;color:var(--ink);flex:1}
+  .conn-term{font-family:var(--display);font-size:22px;font-weight:600;color:var(--accent);flex:1}
+  .conn-clip{cursor:pointer}
+  .conn-clip:hover{color:var(--accent)}
   .conn-meta{font-family:var(--head);font-size:14px;color:var(--ink-soft)}
   .conn-head .caret{transition:.2s;color:var(--ink-soft)}
   .conn-group.collapsed .caret{transform:rotate(-90deg)}
@@ -776,21 +783,21 @@
   /* ===== phones ===== */
   @media (max-width:600px){
     .wrap{padding:0 14px 110px}
-    /* single column; flatten brandwrap/topright so every masthead element can be ordered, with tabs pinned last (just above the divider) */
-    header.mast{padding:18px 0 6px;gap:12px;flex-direction:column;align-items:stretch}
+    /* flatten brandwrap/topright so every masthead element can be ordered; row-wrap so the count + toggles share one row, everything else full-width, tabs pinned last (just above the divider) */
+    header.mast{padding:18px 0 6px;gap:12px;flex-flow:row wrap;align-items:flex-start}
     .mast .brandwrap,.mast .topright{display:contents}
-    .mast .wordmark{order:1}
-    .mast .sub{order:2;font-size:14px;margin-top:6px}
-    .mast .count{order:3;text-align:left}
-    .mast .surprise{order:4}
-    .mast .visitor-info{order:5}
-    .mast .ctrls{order:6;align-items:flex-start}
-    .tabs{order:7}
+    .mast .wordmark{order:1;flex:0 0 100%}
+    .mast .sub{order:2;flex:0 0 100%;font-size:14px;margin-top:6px}
+    .mast .count{order:3;flex:1 1 auto;align-self:center;text-align:left}
+    .mast .ctrls{order:4;flex:0 0 auto;align-items:flex-end}
+    .mast .surprise{order:5;flex:0 0 100%}
+    .mast .visitor-info{order:6;flex:0 0 100%}
+    .tabs{order:7;flex:0 0 100%}
     .mast .count b{font-size:24px}
     /* tabs wrap to two rows (scrolling would clip the Libraries dropdown) with comfortable tap targets */
     .tabs{flex-wrap:wrap;margin-top:4px;gap:6px}
-    .tab{padding:10px 15px 8px;font-size:14px}
-    .manage-btn{padding:10px 13px 8px;font-size:14px}
+    .tab{padding:0 15px;font-size:14px}
+    .manage-btn{padding:0 13px;font-size:14px}
     .book-head{padding-left:22px}
     .chip{padding:6px 3px}
     .toolbar{gap:9px}
@@ -861,12 +868,12 @@
   .theme-legend{position:absolute;left:12px;top:12px;display:grid;gap:4px;font-family:var(--mono);font-size:10px;line-height:1.25;max-width:160px;color:var(--ink-soft);background:rgba(18,12,6,.5);border:1px solid var(--rule);border-radius:6px;padding:7px 9px}
   [data-mode="light"] .theme-legend{background:rgba(250,244,228,.74);color:var(--ink)}
   /* light-mode theme map: tan nodes/faint edges blend into the cream canvas — give them firmer fills, darker edges, and ink text with no washed-out halo */
-  [data-mode="light"] .theme-map-canvas{background:radial-gradient(65% 55% at 50% 44%,rgba(168,127,36,.10),transparent 62%),#efe6cf}
-  [data-mode="light"] .theme-node .n-ring{fill:#e6d4a8;stroke:#9c7a2a;stroke-width:1.3}
-  [data-mode="light"] .theme-node[data-sel="1"] .n-ring{fill:var(--accent);stroke:#7a1c17;stroke-width:2.4;filter:none} /* selected theme = red accent (CSS filter overrides the gold SVG glow in light) */
-  [data-mode="light"] .theme-node[data-sel="1"] text{fill:#fff}
-  [data-mode="light"] .theme-node text{fill:#2a1d0f;stroke:#efe6cf;stroke-width:3.4px}
-  [data-mode="light"] .theme-edge{stroke:#9c7a2a;stroke-opacity:.55}
+  [data-mode="light"] .theme-map-canvas{background:radial-gradient(65% 55% at 50% 44%,rgba(165,47,37,.09),transparent 62%),#efe6cf}
+  /* light theme map (Option C): deep two-tone red borders/lines; interiors filled with the canvas colour so they read "unfilled" yet occlude the edges passing behind and mask the inner half of the glow — selected node only adds an outer red halo, its interior never changes colour */
+  [data-mode="light"] .theme-node .n-ring{fill:#efe6cf;stroke:#8f291f;stroke-opacity:.9;stroke-width:1.8}
+  [data-mode="light"] .theme-node[data-sel="1"] .n-ring{fill:#efe6cf;stroke:var(--accent);stroke-opacity:1;stroke-width:2.4;filter:url(#themeSoftGlowRed)} /* same blur profile/intensity as the dark-mode halo, just red */
+  [data-mode="light"] .theme-node text,[data-mode="light"] .theme-node[data-sel="1"] text{fill:#3a241a;stroke:#efe6cf;stroke-width:2.4px}
+  [data-mode="light"] .theme-edge{stroke:var(--accent);stroke-opacity:.42}
   .conn-group.focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
   .memory-results{position:relative;margin-top:8px;display:none;flex-direction:column;gap:6px}
   .memory-results.show{display:flex}

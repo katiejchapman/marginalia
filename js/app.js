@@ -5,7 +5,7 @@ let IMPORT_LOG=[]; // past imports {date,name,added,updated,total}
 let IS_SAMPLE=false; // true while the built-in sample is loaded
 const SAMPLE_VERSION=2; // bump when the built-in sample content changes so cached samples get rebuilt
 let CAT_FILTER={vocab:1,quotes:1,topic:1,none:1};
-let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true,NOTES_ONLY=false,TL_GRAIN="week";
+let SORT="page",QUERY="",PAGE="library",ACTIVE_DECK=null,LAMP_ON=true,NOTES_ONLY=false,TL_GRAIN="week",JUMP_FP=null;
 // NOTE: keys (vocab/quotes/topic) are DATA — never change them. Values are DISPLAY LABELS.
 // The quotes label is the singular "quote" everywhere. See CLAUDE.md "Tags vs labels".
 const CAT_LABELS={vocab:"vocab",quotes:"quote",topic:"topic of interest"};
@@ -234,6 +234,7 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     const notesFor=new Map(),attached=new Set();
     book.clips.forEach(c=>{if(c.type!=="note"){const ns=noteMap.get(locKey(c));if(ns&&ns.length){notesFor.set(c,ns);ns.forEach(n=>attached.add(n));}}});
     let clips=book.clips.filter(c=>{if(c.type==="note"&&attached.has(c))return false;
+      if(JUMP_FP&&cardId(c)!==JUMP_FP)return false;
       if(NOTES_ONLY&&c.type!=="note"&&!notesFor.has(c))return false;
       if(!CAT_FILTER[c.cat])return false;
       if(q){const ns=notesFor.get(c),noteHit=ns&&ns.some(n=>n.text.toLowerCase().includes(q));
@@ -291,7 +292,9 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
   if(!shown){const e=document.createElement("div");e.className="empty";
     e.textContent="No highlights match these filters.";
     list.appendChild(e);}
-  document.getElementById("statClips").textContent=STATE.clips.length;document.getElementById("statBooks").textContent=books.length;}
+  document.getElementById("statClips").textContent=STATE.clips.length;document.getElementById("statBooks").textContent=books.length;
+  // any active filter (typed query OR a jumped/isolated highlight) always gets a visible ✕ to clear it
+  const _cb=document.getElementById("clearSearch");if(_cb)_cb.style.display=(QUERY||JUMP_FP)?"block":"none";}
 
 /* ---------- Inline editing ---------- */
 function beginEdit(c,textEl,editBtn,div){
@@ -536,7 +539,7 @@ function renderTimeline(){
   const dates=dated.map(parseDate).sort((a,b)=>a-b);
   const min=dates[0],max=dates[dates.length-1];
   const span=Math.max(1,(max-min)/86400000);
-  const grainDays=TL_GRAIN==="day"?1:7;
+  const grainDays=TL_GRAIN==="day"?1:TL_GRAIN==="month"?30:7;
   let buckets=Math.max(1,Math.ceil(span/grainDays));if(buckets>366)buckets=366; // safety cap for very long ranges
   const bw=(max-min)/buckets||1;
   const counts=new Array(buckets).fill(0).map(()=>({vocab:0,quotes:0,topic:0,none:0,total:0,night:0}));
@@ -869,7 +872,7 @@ function renderThemeMap(){const box=document.getElementById("wordCloud");if(!box
   nodes.forEach((n,i)=>{const angle=(Math.PI*2*i/nodes.length)-Math.PI/2;const ring=i<6?150:212;n.x=cx+Math.cos(angle)*ring;n.y=cy+Math.sin(angle)*ring;n.r=14+Math.round(Math.pow(n.count/maxCount,.72)*28);});
   const nodeById=Object.fromEntries(nodes.map(n=>[n.id,n]));const maxEdge=Math.max(1,...edges.map(e=>e.w));const selected=SELECTED_THEME&&nodes.find(n=>n.term===SELECTED_THEME)?SELECTED_THEME:nodes[0].term;SELECTED_THEME=selected;
   box.innerHTML=`<div class="theme-map-wrap"><div class="theme-map-canvas"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Theme map network graph">
-    <defs><filter id="themeSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.66  0 0 0 0 0.29  0 0 0 .9 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <defs><filter id="themeSoftGlow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.86  0 0 0 0 0.66  0 0 0 0 0.29  0 0 0 .9 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter><filter id="themeSoftGlowRed" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="7" result="blur"/><feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.647  0 0 0 0 0.184  0 0 0 0 0.145  0 0 0 1.25 0" result="glow"/><feMerge><feMergeNode in="glow"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
     ${edges.map(e=>{const a=nodeById[e.a],b=nodeById[e.b];return `<line class="theme-edge" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke-width="${1+(e.w/maxEdge)*5}"/>`;}).join("")}
     ${nodes.slice().sort((a,b)=>(a.term===selected?1:0)-(b.term===selected?1:0)).map(n=>`<g class="theme-node" data-term="${escAttr(n.term)}" data-sel="${n.term===selected?1:0}" tabindex="0" role="button" aria-label="Theme ${escAttr(n.term)}, ${n.count} highlights"><circle class="n-ring" cx="${n.x}" cy="${n.y}" r="${n.r}"${n.term===selected?' filter="url(#themeSoftGlow)"':""}/><text x="${n.x}" y="${n.y+4}" text-anchor="middle">${escHtml(truncTitle(n.term,18))}</text></g>`).join("")}
   </svg><div class="theme-legend"><span>nodes = themes</span><span>size = highlights</span><span>line = co-occurrence</span></div></div><aside class="theme-detail" id="themeDetail"></aside></div>`;
@@ -905,7 +908,7 @@ function renderMemoryResults(){const input=document.getElementById("q"),box=docu
 function jumpToMemoryHit(fp){const c=STATE.clips.find(x=>x.fp===fp);if(!c)return;
   // the live text filter OR an off category chip may be hiding this clip — clear/enable both so it always renders
   QUERY="";const qel=document.getElementById("q");if(qel)qel.value="";
-  const cb=document.getElementById("clearSearch");if(cb)cb.style.display="none";
+  JUMP_FP=cardId(c);const cb=document.getElementById("clearSearch");if(cb)cb.style.display="block";
   document.querySelectorAll('#catFilters .chip').forEach(ch=>ch.dataset.on="1");
   if(typeof CAT_FILTER!=="undefined"&&CAT_FILTER)Object.keys(CAT_FILTER).forEach(k=>CAT_FILTER[k]=true);
   render();
@@ -1070,7 +1073,7 @@ function renderConnections(){const box=document.getElementById("connList");if(!b
   box.innerHTML=groups.map((g,i)=>{
     const focused=CONNECTION_FOCUS&&(normThemeTerm(g.term)===normThemeTerm(CONNECTION_FOCUS)||normThemeTerm(g.term).includes(normThemeTerm(CONNECTION_FOCUS))||normThemeTerm(CONNECTION_FOCUS).includes(normThemeTerm(g.term)));
     const chips=[...g.books].map(b=>`<span class="conn-book">${escHtml(b)}</span>`).join("");
-    const items=g.clips.map(c=>`<div class="conn-clip"><span class="conn-src"><b>${escHtml(cleanTitle(c.title))}</b>${c.author?` · ${escHtml(c.author)}`:""}${c.page?" · p."+escHtml(c.page):""}</span>${escHtml(c.text)}</div>`).join("");
+    const items=g.clips.map(c=>`<div class="conn-clip" data-fp="${escAttr(cardId(c))}" title="Jump to this highlight in the library"><span class="conn-src"><b>${escHtml(cleanTitle(c.title))}</b>${c.author?` · ${escHtml(c.author)}`:""}${c.page?" · p."+escHtml(c.page):""}</span>${escHtml(c.text)}</div>`).join("");
     return `<div class="conn-group${focused?" focus":""}"><div class="conn-head" data-i="${i}">
         <span class="conn-term">${escHtml(g.term)}</span>
         <span class="conn-meta">${g.books.size} books · ${g.clips.length} highlights</span>
@@ -1078,6 +1081,7 @@ function renderConnections(){const box=document.getElementById("connList");if(!b
       <div class="conn-clips">${items}</div></div>`;
   }).join("");
   box.querySelectorAll(".conn-head").forEach(h=>h.onclick=()=>h.parentElement.classList.toggle("collapsed"));
+  box.querySelectorAll(".conn-clip[data-fp]").forEach(el=>el.onclick=()=>{const c=STATE.clips.find(x=>cardId(x)===el.dataset.fp);if(c)jumpToClipInLibrary(c);});
 }
 
 /* ---------- In-app spaced-repetition review ---------- */
@@ -1327,9 +1331,11 @@ function jumpToClipInLibrary(c){
   // make sure every category is visible so the target clip actually renders
   document.querySelectorAll('#catFilters .chip').forEach(ch=>ch.dataset.on="1");
   if(typeof CAT_FILTER!=="undefined"&&CAT_FILTER)Object.keys(CAT_FILTER).forEach(k=>CAT_FILTER[k]=true);
+  const fp=cardId(c);
+  // isolate the jumped highlight; the ✕ (clear-search) reveals the rest of the library again
+  JUMP_FP=fp;const cb=document.getElementById("clearSearch");if(cb)cb.style.display="block";
   const tab=document.querySelector('.tab[data-page="library"]');if(tab)tab.click();
   render();
-  const fp=cardId(c);
   setTimeout(()=>{const t=document.querySelector(`.clip[data-fp="${CSS.escape(fp)}"]`);if(t){const bk=t.closest(".book");if(bk)bk.classList.remove("collapsed");t.scrollIntoView({behavior:"smooth",block:"center"});t.classList.add("pulse");setTimeout(()=>t.classList.remove("pulse"),1800);}else toast("Highlight is in your library.");},80);
 }
 function skipReview(){if(!RV.active)return;RV.i++;RV.flipped=false;drawReviewCard();}
