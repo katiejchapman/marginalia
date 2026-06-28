@@ -1,0 +1,402 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marginalia — Architecture & Feature Dashboard</title>
+<style>
+  :root{
+    --paper:#1b1714; --paper-2:#241e1a; --card:#241e1a; --ink:#efe3c7; --ink-soft:#b9a888;
+    --muted:#8d7d63; --accent:#d6b34c; --accent-2:#9bb4c9; --rule:#3a3128; --rule-strong:#4c4032;
+    --vocab:#d6b34c; --quote:#c1503f; --topic:#5b8fb9; --note:#6f9c6f;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+    --mono:"JetBrains Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:
+      radial-gradient(1200px 600px at 80% -10%,rgba(214,179,76,.06),transparent 60%),
+      var(--paper);
+    color:var(--ink);font-family:var(--serif);line-height:1.6;font-size:16px;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px 120px}
+
+  /* ---- masthead ---- */
+  header.mast{padding:64px 0 26px;border-bottom:1px solid var(--rule)}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin:0 0 12px}
+  h1{font-family:var(--serif);font-size:52px;line-height:1.04;margin:0 0 10px;font-weight:600;letter-spacing:-.5px}
+  h1 .lamp{color:var(--accent)}
+  .tagline{font-size:19px;color:var(--ink-soft);max-width:760px;margin:0 0 22px;font-style:italic}
+  .facts{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .pill{font-family:var(--mono);font-size:11.5px;letter-spacing:.03em;border:1px solid var(--rule-strong);
+    background:var(--card);color:var(--ink-soft);padding:6px 11px;border-radius:999px}
+  .pill b{color:var(--accent);font-weight:500}
+
+  /* ---- nav ---- */
+  nav.toc{position:sticky;top:0;z-index:10;background:rgba(27,23,20,.92);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--rule);margin:0 -22px 0;padding:11px 22px;display:flex;gap:6px;flex-wrap:wrap;overflow-x:auto}
+  nav.toc a{font-family:var(--mono);font-size:11.5px;color:var(--ink-soft);padding:5px 10px;border-radius:5px;white-space:nowrap}
+  nav.toc a:hover{background:var(--paper-2);color:var(--accent);text-decoration:none}
+
+  section{padding:48px 0 8px;border-bottom:1px solid var(--rule)}
+  section:last-of-type{border-bottom:none}
+  h2{font-family:var(--serif);font-size:30px;margin:0 0 6px;font-weight:600;letter-spacing:-.3px}
+  h2 .num{font-family:var(--mono);font-size:14px;color:var(--accent);margin-right:12px;vertical-align:middle;
+    border:1px solid var(--rule-strong);border-radius:6px;padding:3px 8px}
+  .lead{color:var(--ink-soft);font-size:17px;max-width:820px;margin:6px 0 22px}
+  h3{font-size:19px;margin:26px 0 8px;color:var(--accent);font-weight:600}
+  p{margin:0 0 12px}
+  code{font-family:var(--mono);font-size:.86em;background:var(--paper-2);border:1px solid var(--rule);
+    border-radius:4px;padding:1px 5px;color:var(--ink)}
+  ul{margin:8px 0 16px;padding-left:20px}
+  li{margin:5px 0}
+  .muted{color:var(--muted);font-size:14px}
+
+  /* ---- generic node / flow ---- */
+  .flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:18px 0 8px}
+  .node{flex:1 1 0;min-width:140px;background:var(--card);border:1px solid var(--rule-strong);border-radius:10px;
+    padding:13px 15px;box-shadow:0 6px 18px -12px rgba(0,0,0,.7)}
+  .node .t{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+  .node .d{font-size:13.5px;color:var(--ink-soft);line-height:1.45}
+  .node code{font-size:11.5px;padding:0 3px}
+  .arrow{display:flex;align-items:center;justify-content:center;flex:0 0 34px;color:var(--accent);font-size:20px;font-weight:700}
+  .arrow.down{flex-basis:100%;height:30px}
+  .arrow.down:before{content:"↓"}
+  .arrow:not(.down):before{content:"→"}
+
+  /* accent variants */
+  .n-vocab{border-color:var(--vocab)} .n-vocab .t{color:var(--vocab)}
+  .n-quote{border-color:var(--quote)} .n-quote .t{color:var(--quote)}
+  .n-topic{border-color:var(--topic)} .n-topic .t{color:var(--topic)}
+  .n-note{border-color:var(--note)} .n-note .t{color:var(--note)}
+
+  /* ---- grids ---- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:18px 0}
+  .card{background:var(--card);border:1px solid var(--rule-strong);border-radius:12px;padding:18px;
+    box-shadow:0 8px 22px -16px rgba(0,0,0,.8)}
+  .card h4{margin:0 0 6px;font-size:17px;color:var(--accent)}
+  .card .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+  .card ul{margin:6px 0 0;padding-left:18px}
+  .card li{font-size:14px;color:var(--ink-soft)}
+
+  /* ---- stack table ---- */
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule)}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);font-weight:500}
+  td code{font-size:12px}
+  tbody tr:hover{background:var(--paper-2)}
+
+  /* ---- sequence (handoff) ---- */
+  .seq{margin:18px 0;border-left:2px solid var(--rule-strong);padding-left:0}
+  .step{position:relative;padding:10px 0 10px 34px;margin-left:8px}
+  .step:before{content:attr(data-n);position:absolute;left:-13px;top:10px;width:24px;height:24px;border-radius:50%;
+    background:var(--card);border:1px solid var(--accent);color:var(--accent);font-family:var(--mono);font-size:12px;
+    display:flex;align-items:center;justify-content:center}
+  .step .who{font-family:var(--mono);font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--accent)}
+  .step .what{font-size:14.5px;color:var(--ink-soft)}
+
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:10px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--ink-soft)}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+
+  .callout{background:linear-gradient(180deg,rgba(214,179,76,.07),rgba(214,179,76,.02));
+    border:1px solid var(--rule-strong);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:18px 0;
+    font-size:14.5px;color:var(--ink-soft)}
+  .callout b{color:var(--ink)}
+
+  footer{padding:40px 0 0;color:var(--muted);font-family:var(--mono);font-size:12px;text-align:center}
+
+  @media(max-width:680px){
+    h1{font-size:38px}
+    .flow .arrow:not(.down){flex-basis:100%;height:26px;transform:rotate(90deg)}
+    .node{flex-basis:100%}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="mast" id="top">
+    <p class="kicker">Architecture &amp; Feature Dashboard</p>
+    <h1><span class="lamp">✦</span> Marginalia</h1>
+    <p class="tagline">A Kindle-highlights organizer that turns <code>My&nbsp;Clippings.txt</code> into an
+      illuminated bookshelf, a study deck, and a spaced-repetition tutor — with zero backend for the core app.</p>
+    <div class="facts">
+      <span class="pill"><b>~5,000</b> lines of code</span>
+      <span class="pill"><b>0</b> build steps</span>
+      <span class="pill"><b>0</b> npm dependencies (app)</span>
+      <span class="pill"><b>1</b> serverless function</span>
+      <span class="pill">runs from <b>file://</b></span>
+      <span class="pill">vanilla <b>JS</b></span>
+    </div>
+  </header>
+
+  <nav class="toc">
+    <a href="#overview">Overview</a>
+    <a href="#stack">Tech stack</a>
+    <a href="#files">Code map</a>
+    <a href="#data">Data model</a>
+    <a href="#import">Import pipeline</a>
+    <a href="#cat">Categorization</a>
+    <a href="#views">The four views</a>
+    <a href="#review">Review (SRS)</a>
+    <a href="#anki">Anki export</a>
+    <a href="#apis">External APIs</a>
+    <a href="#handoff">Phone handoff + OCR</a>
+    <a href="#deploy">Hosting</a>
+  </nav>
+
+  <!-- ============ OVERVIEW ============ -->
+  <section id="overview">
+    <h2><span class="num">01</span>What it is</h2>
+    <p class="lead">Marginalia parses a Kindle export, auto-sorts every highlight into <b>vocab</b>, <b>quote</b>,
+      or <b>topic of interest</b>, and presents the library four ways. Everything lives in one page; state persists
+      in the browser. The only server-side piece is a tiny relay that lets a phone hand a scanned highlight to the desktop.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">Input</div><div class="d">Kindle <code>My&nbsp;Clippings.txt</code>, HTML/CSV export, manual add, or phone OCR scan</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">Parse + dedup</div><div class="d">Split clips, fingerprint each, merge by identity</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">Categorize</div><div class="d">Auto-sort into vocab / quote / topic</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">Persist</div><div class="d"><code>localStorage</code> — multi-library</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">Study</div><div class="d">Shelf, timeline, analytics, flashcards, Anki TSV</div></div>
+    </div>
+
+    <div class="legend">
+      <span><i style="background:var(--vocab)"></i>vocab</span>
+      <span><i style="background:var(--quote)"></i>quote</span>
+      <span><i style="background:var(--topic)"></i>topic of interest</span>
+      <span><i style="background:var(--note)"></i>note</span>
+    </div>
+  </section>
+
+  <!-- ============ STACK ============ -->
+  <section id="stack">
+    <h2><span class="num">02</span>Technology stack</h2>
+    <p class="lead">Deliberately dependency-free. The "stack" is the browser platform itself; the only third parties
+      are read-only public APIs and a bundled OCR engine that loads lazily.</p>
+    <table>
+      <thead><tr><th>Layer</th><th>Technology</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>UI shell</td><td><code>index.html</code> + <code>styles.css</code></td><td>Single page; CSS variables drive the light/dark "scriptorium" theme</td></tr>
+        <tr><td>Logic</td><td>Vanilla ES (classic <code>&lt;script&gt;</code>, global scope)</td><td>No bundler, no modules → still double-clickable from <code>file://</code></td></tr>
+        <tr><td>State / storage</td><td>Web <code>localStorage</code> (key <code>marginalia.v2</code>)</td><td>No accounts, no DB; data never leaves the device</td></tr>
+        <tr><td>OCR</td><td>Tesseract.js (bundled in <code>js/vendor/tesseract/</code>)</td><td>On-device text recognition for the phone-scan path</td></tr>
+        <tr><td>Knowledge APIs</td><td>Wikipedia · Wiktionary · Tatoeba</td><td>Definitions, etymology, example sentences for vocab cards</td></tr>
+        <tr><td>Relay (only server code)</td><td>Cloudflare Pages Function + Workers KV</td><td>Token-keyed, one-shot, 5-min mailbox for phone→desktop handoff</td></tr>
+        <tr><td>Hosting</td><td>Cloudflare Pages (static root)</td><td><code>pages_build_output_dir = "."</code> — no build</td></tr>
+        <tr><td>Fonts</td><td>Google Fonts (Fraunces, Lora, JetBrains Mono…)</td><td>Only network call the static app makes at load</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ============ FILES ============ -->
+  <section id="files">
+    <h2><span class="num">03</span>Code map &amp; load order</h2>
+    <p class="lead">Scripts are plain classic scripts sharing one global scope. <b>Order matters</b>: definitions load
+      before <code>boot.js</code>, which holds all the code that runs immediately on parse.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">1 · highlights.js</div><div class="d">Term tooltips &amp; API fetchers: <code>annotateTerms</code>, <code>populateTip</code>, <code>fetchWiki</code>, <code>fetchWiktionary</code></div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">2 · app.js</div><div class="d">The core: data model, render, categorization, review, Anki, import. All <em>definitions</em>.</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">3 · handoff.js</div><div class="d">Desktop receiver for phone handoff (polls the relay)</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">4 · ocr-highlight.js</div><div class="d">Placeholder stub (reserved)</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">5 · boot.js</div><div class="d">All <em>immediate</em> code: event wiring, session restore, sample loader</div></div>
+    </div>
+
+    <div class="grid">
+      <div class="card"><div class="sub">presentation</div><h4>index.html</h4><ul><li>Markup shell + inline <code>onclick</code> handlers</li><li>Loads CSS &amp; the 5 scripts</li></ul></div>
+      <div class="card"><div class="sub">presentation</div><h4>styles.css</h4><ul><li>The whole theme</li><li><code>--paper</code> / <code>--ink</code> / <code>--accent</code> vars</li><li><code>[data-mode="light|dark"]</code></li></ul></div>
+      <div class="card"><div class="sub">phone page</div><h4>js/scan.js</h4><ul><li>Sender side of handoff</li><li>Camera capture + Tesseract OCR</li><li>POSTs to the relay</li></ul></div>
+      <div class="card"><div class="sub">serverless</div><h4>functions/api/relay/[token].js</h4><ul><li>Pages Function</li><li>KV put/get, one-shot</li></ul></div>
+    </div>
+    <p class="muted">The split is governed by a one-time "extract only, don't refactor" rule — behaviour is byte-for-byte the same as the original single-file app.</p>
+  </section>
+
+  <!-- ============ DATA MODEL ============ -->
+  <section id="data">
+    <h2><span class="num">04</span>Data model &amp; persistence</h2>
+    <p class="lead">The live globals are a <b>projection</b> of one active library. You never touch both copies directly —
+      <code>syncActiveLib()</code> pushes globals into the library object, <code>loadLibIntoState()</code> projects one back out.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">LIBRARIES[]</div><div class="d">Every saved library. <code>ACTIVE_LIB</code> picks one.</div></div>
+      <div class="arrow" style="font-size:15px">⇄</div>
+      <div class="node n-topic"><div class="t">Live globals</div><div class="d"><code>STATE = {clips, decks}</code>, <code>CAT_RULES</code>, <code>REVIEW_LOG</code>, <code>IMPORT_LOG</code></div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">saveState()</div><div class="d">Debounced. Calls <code>syncActiveLib()</code> first.</div></div>
+      <div class="arrow"></div>
+      <div class="node n-vocab"><div class="t">localStorage</div><div class="d"><code>marginalia.v2</code> · migrates from <code>v1</code></div></div>
+    </div>
+
+    <div class="callout">
+      <b>A clip</b> = <code>{id, batch, title, author, text, type, page, loc, added, cat, fp, edited, catLocked, review, flagged, incoming}</code>.
+      Its <code>fp</code> (fingerprint) is the stable identity used as the card id.
+    </div>
+    <p class="muted">Rule of thumb: mutate state, then call <code>saveState()</code>. Never edit <code>LIBRARIES[x].clips</code> and <code>STATE.clips</code> independently.</p>
+  </section>
+
+  <!-- ============ IMPORT ============ -->
+  <section id="import">
+    <h2><span class="num">05</span>Import &amp; dedup pipeline</h2>
+    <p class="lead"><code>ingest()</code> dispatches by file type, then merges by fingerprint so re-importing the same
+      export is idempotent — new clips add, changed text updates in place, and your own edits are protected.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">ingest(text, file)</div><div class="d">Detect format by extension / content</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">parse*</div><div class="d"><code>parseClippings</code> (<code>==========</code>), <code>parseHtml</code>, <code>parseCsv</code></div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">clipFp(c)</div><div class="d"><code>type|title|author|location</code> (text-head fallback)</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">merge by fp</div><div class="d">add / update / stage</div></div>
+    </div>
+
+    <h3>Merge decision</h3>
+    <div class="flow">
+      <div class="node n-vocab"><div class="t">fp not seen</div><div class="d">→ add as new clip</div></div>
+      <div class="node n-topic"><div class="t">fp seen, text changed, not user-edited</div><div class="d">→ update text in place</div></div>
+      <div class="node n-quote"><div class="t">fp seen, but user <code>edited</code></div><div class="d">→ stage as <code>incoming</code> for review (don't clobber)</div></div>
+    </div>
+    <p class="muted">Backups round-trip losslessly via <code>exportLibraryJson()</code> / <code>importLibraryJson()</code>.</p>
+  </section>
+
+  <!-- ============ CATEGORIZATION ============ -->
+  <section id="cat">
+    <h2><span class="num">06</span>Auto-categorization</h2>
+    <p class="lead"><code>autoCategorize(c)</code> looks at each clip and routes it. User overrides are remembered in
+      <code>CAT_RULES</code> (keyed by text) and <code>catLocked</code> stops re-import from re-sorting them.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">clip text</div><div class="d">one highlight</div></div>
+      <div class="arrow"></div>
+      <div class="node n-vocab"><div class="t">vocab</div><div class="d">single-word lookup — <code>isVocabWord</code> / <code>vocabTermOf</code></div></div>
+      <div class="node n-topic"><div class="t">topic of interest</div><div class="d">proper noun / named subject — <code>isCapCore</code> / <code>lookupForm</code></div></div>
+      <div class="node n-quote"><div class="t">quote</div><div class="d">everything else — a memorable passage</div></div>
+    </div>
+    <div class="callout">
+      <b>Keys vs labels.</b> The data keys are immutable: <code>vocab</code>, <code>quotes</code>, <code>topic</code>, <code>none</code>.
+      What the user sees comes from <code>CAT_LABELS</code> — e.g. <code>quotes</code> always displays as the singular <b>"quote"</b>.
+    </div>
+  </section>
+
+  <!-- ============ VIEWS ============ -->
+  <section id="views">
+    <h2><span class="num">07</span>The four views</h2>
+    <p class="lead">One page, four tabs. The handler sets <code>PAGE</code> and toggles
+      <code>#pageLibrary</code> / <code>#pageTimeline</code> / <code>#pageConnections</code> / <code>#pageReview</code>.</p>
+    <div class="grid">
+      <div class="card"><div class="sub">render() → renderShelf()</div><h4>📚 Library</h4>
+        <ul><li>Books as spines that open to covers on hover/tap</li><li><code>groupByBook()</code> + per-book clip lists</li><li>Margin notes render inline under their highlight</li><li>notes pill = filter, not show/hide</li></ul></div>
+      <div class="card"><div class="sub">renderTimeline()</div><h4>🕰 Timeline</h4>
+        <ul><li>Date-range slider over <code>added</code> dates</li><li>See what you highlighted, when</li></ul></div>
+      <div class="card"><div class="sub">renderExplore()</div><h4>📊 Explore data</h4>
+        <ul><li>Theme map, Connections</li><li>By book / author (mix bars + rare-word lists)</li><li>Reading-pace scatter</li></ul></div>
+      <div class="card"><div class="sub">startReview()</div><h4>🎴 Review</h4>
+        <ul><li>Spaced-repetition flashcards</li><li>Front/back flip, 1–4 grading</li><li>Sessions save/resume per library</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ============ REVIEW ============ -->
+  <section id="review">
+    <h2><span class="num">08</span>Review — spaced repetition</h2>
+    <p class="lead">A shuffled batch mixes fresh and previously-seen cards. Each grade is recorded on the clip
+      (<code>c.review</code>) and in <code>REVIEW_LOG</code>. Grade 1 ("Again") re-queues the card in the same round.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">startReview()</div><div class="d">Build shuffled batch (fresh + seen mix)</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">drawReviewCard()</div><div class="d">Show front</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">flipReviewCard()</div><div class="d">Reveal back (definition / source)</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">gradeReview()</div><div class="d">Again · Hard · Good · Easy</div></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--quote)"></i>1 Again → re-queue this round</span>
+      <span><i style="background:var(--accent)"></i>2 Hard</span>
+      <span><i style="background:var(--note)"></i>3 Good</span>
+      <span><i style="background:var(--topic)"></i>4 Easy</span>
+    </div>
+  </section>
+
+  <!-- ============ ANKI ============ -->
+  <section id="anki">
+    <h2><span class="num">09</span>Anki deck export</h2>
+    <p class="lead">Decks are tag filters (<code>{vocab, quotes, topic}</code>) plus an explicit <code>include[]</code> of card ids.
+      Export builds inline-styled HTML cards and emits an Anki-importable TSV.</p>
+
+    <div class="flow">
+      <div class="node"><div class="t">clipsForDeck()</div><div class="d">Resolve filter + includes → cards</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">buildDeckRows()</div><div class="d"><code>wrapFront</code> / <code>wrapBackVocab</code> / <code>wrapBackWiki</code> + <code>styleBlock()</code></div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">rowsToTsv()</div><div class="d">Tab-separated, ready for Anki import</div></div>
+      <div class="arrow"></div>
+      <div class="node n-vocab"><div class="t">.tsv download</div><div class="d">Styled flashcards in any Anki app</div></div>
+    </div>
+  </section>
+
+  <!-- ============ APIS ============ -->
+  <section id="apis">
+    <h2><span class="num">10</span>External knowledge APIs</h2>
+    <p class="lead">Best-effort and cached in memory; every call degrades gracefully if slow or unreachable.
+      They enrich vocab card backs and the hover tooltips — the app is fully usable offline without them.</p>
+    <div class="grid">
+      <div class="card"><div class="sub">summaries</div><h4>Wikipedia REST</h4><ul><li>Topic summary for "topic of interest" cards &amp; tooltips</li></ul></div>
+      <div class="card"><div class="sub">definitions · etymology</div><h4>Wiktionary</h4><ul><li>REST + <code>w/api.php</code></li><li><code>dictionaryapi.dev</code> fallback</li></ul></div>
+      <div class="card"><div class="sub">usage</div><h4>Tatoeba</h4><ul><li>Example sentences for a vocab word</li></ul></div>
+      <div class="card"><div class="sub">ambient</div><h4>countapi · ipapi</h4><ul><li>Lightweight visitor counter</li></ul></div>
+    </div>
+    <div class="callout">All knowledge fetching lives in <code>highlights.js</code> behind <code>fetchWiki</code> / <code>fetchWiktionary</code> / <code>fetchTatoebaExample</code>, wrapped in try/catch with in-memory caches.</div>
+  </section>
+
+  <!-- ============ HANDOFF ============ -->
+  <section id="handoff">
+    <h2><span class="num">11</span>Phone → desktop handoff (scan + OCR)</h2>
+    <p class="lead">Snap a paper book's line on your phone, OCR it on-device, and it appears on the desktop library —
+      no accounts. The token in the URL <em>is</em> the permission; the mailbox is one-shot and expires in 5 minutes.</p>
+
+    <div class="seq">
+      <div class="step" data-n="1"><div class="who">Desktop · handoff.js</div><div class="what">Generates a random token, shows a QR / link, starts polling <code>GET /api/relay/:token</code>.</div></div>
+      <div class="step" data-n="2"><div class="who">Phone · /scan + scan.js</div><div class="what">Opens the rear camera, captures a photo of the highlight.</div></div>
+      <div class="step" data-n="3"><div class="who">Phone · Tesseract.js</div><div class="what">Lazily loads the bundled OCR engine and recognizes the text on-device.</div></div>
+      <div class="step" data-n="4"><div class="who">Phone → Relay</div><div class="what"><code>POST /api/relay/:token</code> stores the JSON highlight in Workers KV (<code>TTL 300s</code>, ≤ 8 KB).</div></div>
+      <div class="step" data-n="5"><div class="who">Relay · Cloudflare</div><div class="what">KV holds it under the token until the first read.</div></div>
+      <div class="step" data-n="6"><div class="who">Desktop poll hits</div><div class="what"><code>GET</code> returns the payload <em>and deletes it</em> (one-shot). Clip is ingested → merged → saved.</div></div>
+    </div>
+    <div class="callout"><b>Why a server at all?</b> The desktop is the <em>receiver</em>, so it needs a real origin the phone can POST to. <code>file://</code> can't be that origin — hence the single tiny relay. Everything else stays local.</div>
+  </section>
+
+  <!-- ============ DEPLOY ============ -->
+  <section id="deploy">
+    <h2><span class="num">12</span>Hosting &amp; deployment</h2>
+    <p class="lead">The static site is the repo root; Cloudflare Pages serves it directly with no build, and manages the
+      KV binding from <code>wrangler.toml</code>.</p>
+    <div class="flow">
+      <div class="node"><div class="t">git repo root</div><div class="d"><code>index.html</code>, <code>styles.css</code>, <code>js/</code></div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">Cloudflare Pages</div><div class="d"><code>pages_build_output_dir = "."</code> — static, no build</div></div>
+      <div class="arrow"></div>
+      <div class="node"><div class="t">functions/</div><div class="d">File-routed Pages Functions → <code>/api/relay/:token</code></div></div>
+      <div class="arrow"></div>
+      <div class="node n-vocab"><div class="t">Workers KV</div><div class="d">binding <code>RELAY</code></div></div>
+    </div>
+    <p class="muted">Local dev needs nothing but a browser; for the relay, <code>wrangler pages dev . --kv RELAY</code>.</p>
+  </section>
+
+  <footer>
+    Marginalia — generated architecture dashboard · scriptorium theme · single self-contained HTML file
+  </footer>
+
+</div>
+</body>
+</html>

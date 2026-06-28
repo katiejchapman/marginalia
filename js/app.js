@@ -178,7 +178,13 @@ function renderShelf(books){const shelf=document.getElementById("shelf");shelf.i
     sp.className="book-spine "+sv+(b.reading?" reading":"");
     sp.innerHTML=`<div class="spine-inner"><div class="cloth" style="background:${color}"></div><div class="spframe"></div><div class="band t"></div><div class="band b"></div><div class="cover-orn"></div><div class="cover-corner" title="${b.reading?"Currently reading — click to clear":"Mark as currently reading"}"></div><div class="vtitle">${escHtml(truncTitle(b.title,16))}</div><div class="htitle">${escHtml(b.title)}</div><div class="cauthor">${escHtml(b.author||"")}</div><div class="scount">${b.clips.length}</div></div>`;
     sp.title=b.title+(b.author?" — "+b.author:"")+(b.reading?" · currently reading":"");
-    sp.onclick=()=>{const el=document.getElementById("book-"+b.key);if(el){el.classList.remove("collapsed");COLLAPSED.delete(b.key);el.scrollIntoView({behavior:"smooth"});}};
+    sp.onclick=()=>{
+      // touch: first tap reveals the cover (same expand + neighbour-slide as desktop hover), second tap jumps
+      if(window.matchMedia&&window.matchMedia("(pointer:coarse)").matches&&!sp.classList.contains("show-cover")){
+        shelf.querySelectorAll(".book-spine").forEach(o=>{o.classList.remove("show-cover");o.style.transform="";});
+        sp.classList.add("show-cover");slide(true);return;}
+      sp.classList.remove("show-cover");slide(false);
+      const el=document.getElementById("book-"+b.key);if(el){el.classList.remove("collapsed");COLLAPSED.delete(b.key);el.scrollIntoView({behavior:"smooth"});}};
     const _cc=sp.querySelector(".cover-corner");if(_cc)_cc.onclick=e=>{e.stopPropagation();toggleReadingInPlace(b.title,b.author,sp,b.key);};
     // hovering a book slides its same-row neighbors aside (no overlap) so you can sweep across; edge books expand left and push the preceding ones
     const slide=on=>{const expW=size==="s"?118:size==="l"?158:140,delta=Math.max(0,expW-sp.offsetWidth);
@@ -207,7 +213,7 @@ function paginateShelf(shelf,spineEls){
   const cs=getComputedStyle(shelf),padL=parseFloat(cs.paddingLeft)||0,padR=parseFloat(cs.paddingRight)||0;
   const full=shelf.clientWidth-padL-padR;
   if(full<=0)return; // shelf not laid out (library tab hidden) — re-runs when it becomes visible
-  const gap=12,gutter=110; // gutter reserves room for the flip arrows (prev+next, kept in sync with .shelf.paged padding-right)
+  const gap=12,gutter=90; // gutter reserves room for the flip arrows (prev+next, kept in sync with .shelf.paged padding-right)
   const widths=spineEls.map(el=>el.offsetWidth);
   const pack=avail=>{const rows=[[]];let w=0;widths.forEach((wd,idx)=>{const add=(rows[rows.length-1].length?gap:0)+wd;if(w+add>avail&&rows[rows.length-1].length){rows.push([idx]);w=wd;}else{rows[rows.length-1].push(idx);w+=add;}});return rows;};
   if(pack(full).length<=2){SHELF_PAGE=0;return;} // fits in two rows — no paging
@@ -294,7 +300,10 @@ function render(){const list=document.getElementById("list");list.innerHTML="";c
     list.appendChild(e);}
   document.getElementById("statClips").textContent=STATE.clips.length;document.getElementById("statBooks").textContent=books.length;
   // any active filter (typed query OR a jumped/isolated highlight) always gets a visible ✕ to clear it
-  const _cb=document.getElementById("clearSearch");if(_cb)_cb.style.display=(QUERY||JUMP_FP)?"block":"none";}
+  const _cb=document.getElementById("clearSearch");if(_cb)_cb.style.display=(QUERY||JUMP_FP)?"block":"none";
+  syncBookHeadTop();}
+// book-head sticks just under the sticky toolbar; the toolbar grows taller on mobile (it wraps), so measure it instead of hard-coding 57px
+function syncBookHeadTop(){const tb=document.querySelector("#pageLibrary .toolbar");if(tb&&tb.offsetHeight)document.documentElement.style.setProperty("--bh-top",tb.offsetHeight+"px");}
 
 /* ---------- Inline editing ---------- */
 function beginEdit(c,textEl,editBtn,div){

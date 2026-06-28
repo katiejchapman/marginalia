@@ -128,6 +128,7 @@
   .shelf-wrap{margin:24px 0 6px}
   .shelf-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap}
   .shelf-title{font-family:var(--head);font-size:16px;color:var(--ink-soft);margin:0}
+  .shelf-title .hint-tap{display:none} /* swapped in for touch (pointer:coarse) */
   .book-size-toggle{display:inline-flex;border:1px solid var(--rule);border-radius:3px;overflow:hidden}
   .book-size-toggle button{font-family:var(--mono);font-size:10px;text-transform:lowercase;background:var(--card);color:var(--ink-soft);border:none;padding:4px 9px;cursor:pointer}
   .book-size-toggle button[data-on="1"]{background:var(--accent);color:#2a2014}
@@ -142,9 +143,9 @@
   .shelf.size-m .book-spine{height:172px;width:46px}
   .shelf.size-l .book-spine{height:200px;width:52px}
   .shelf{position:relative;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;padding:20px 18px 0;border-radius:4px 4px 0 0;background:none}
-  .shelf.paged{padding-right:128px} /* reserve a gutter for the flip arrows (18 base + 110 gutter, in sync with paginateShelf) */
-  .shelf-flip{position:absolute;right:12px;bottom:8px;width:46px;height:46px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--rule-strong);color:var(--accent);border-radius:4px;cursor:pointer;font-size:21px;line-height:1;z-index:21;transition:.12s;box-shadow:0 4px 10px -6px rgba(0,0,0,.5)}
-  .shelf-flip.prev{right:64px}
+  .shelf.paged{padding-right:108px} /* reserve a gutter for the flip arrows (18 base + 90 gutter, in sync with paginateShelf) */
+  .shelf-flip{position:absolute;right:12px;bottom:8px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:var(--card);border:1px solid var(--rule-strong);color:var(--accent);border-radius:4px;cursor:pointer;font-size:17px;line-height:1;z-index:21;transition:.12s;box-shadow:0 4px 10px -6px rgba(0,0,0,.5)}
+  .shelf-flip.prev{right:56px}
   .shelf-flip:disabled{opacity:.3;cursor:default}
   .shelf-flip:disabled:hover{border-color:var(--rule-strong);background:var(--card)}
   .shelf-flip:hover{border-color:var(--accent);background:var(--paper-2)}
@@ -211,23 +212,23 @@
   .chip[data-on="1"] .dot{display:inline-block}
 
   /* ===== book section + bookmark ribbon ===== */
-  .book{margin-top:34px;scroll-margin-top:80px;position:relative}
-  .book-head{position:sticky;top:57px;z-index:6;background:var(--paper);display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;padding-top:6px;margin-bottom:2px;cursor:pointer;padding-left:40px}
+  .book{margin-top:34px;scroll-margin-top:calc(var(--bh-top,57px) + 16px);position:relative}
+  .book-head{position:sticky;top:var(--bh-top,57px);z-index:6;background:var(--paper);display:flex;align-items:baseline;gap:14px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;padding-top:6px;margin-bottom:2px;cursor:pointer;padding-left:40px}
   .ribbon{position:absolute;left:6px;top:-6px;width:20px;height:50px;box-shadow:0 2px 4px rgba(0,0,0,.4);z-index:2}
   .ribbon:after{content:"";position:absolute;bottom:-8px;left:0;border-left:10px solid transparent;border-right:10px solid transparent;border-top:8px solid var(--rcol,#6e2a26)}
   /* inner circle on the bookmark ribbon: empty by default, fills gold when the book is currently reading */
   .ribbon:before{content:"";position:absolute;top:6px;left:50%;transform:translateX(-50%);width:7px;height:7px;border:1px solid rgba(232,210,120,.6);border-radius:50%;transition:.14s}
   .book.reading .ribbon:before{background:var(--gold);border-color:var(--gold);box-shadow:0 0 4px var(--gold)}
   .book-head .idx{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
-  .book-head .title{font-size:26px;font-weight:600;letter-spacing:-.3px;font-family:var(--head)}
-  .book-head .author{font-style:italic;color:var(--ink-soft);font-size:16px;font-family:var(--display)}
+  .book-head .title{font-size:22px;font-weight:600;letter-spacing:-.3px;font-family:var(--head);order:1;position:relative;z-index:3}
+  .book-head .author{font-style:italic;color:var(--ink-soft);font-size:14px;font-family:var(--display);order:2}
+  .book-head .tally{order:4}.book-head .book-del{order:5}.book-head .caret{order:6}
   .book-head .tally{font-family:var(--mono);font-size:12px;color:var(--ink-soft)}
   .book-head .caret{color:var(--ink-soft);font-family:var(--mono);font-weight:700;font-size:16px;line-height:1;width:16px;text-align:center;flex:none}
   .book-head .caret:before{content:"\2212"} /* minus = expanded (click to collapse) */
   .book.collapsed .caret:before{content:"+"} /* plus = collapsed (click to expand) */
-  .book-head .book-reading{margin-right:auto;align-self:center;border:1px solid var(--rule-strong);background:none;color:var(--ink-soft);font-family:var(--mono);font-size:10px;letter-spacing:.02em;line-height:1;padding:4px 8px;border-radius:3px;cursor:pointer;opacity:0;transition:.12s;white-space:nowrap}
-  .book-head .book-reading[data-on="1"]{opacity:1}
-  .book-head:hover .book-reading{opacity:1}
+  .book-head .book-reading{order:3;margin-left:auto;align-self:center;border:1px solid var(--rule-strong);background:none;color:var(--ink-soft);font-family:var(--mono);font-size:10px;letter-spacing:.02em;line-height:1;padding:4px 8px;border-radius:3px;cursor:pointer;opacity:0;transition:.12s;white-space:nowrap}
+  .book-head:hover .book-reading{opacity:1} /* show only on hover, even when selected */
   .book-head .book-reading[data-on="1"]{color:#3a2c12;background:var(--gold);border-color:var(--gold)}
   .book-head .book-del{border:none;background:none;color:var(--ink-soft);font-size:14px;line-height:1;padding:0 2px;cursor:pointer;opacity:0;transition:.12s}
   .book-head:hover .book-del{opacity:.5}
@@ -424,6 +425,14 @@
   .bs-leg i{width:8px;height:8px;border-radius:2px;flex:none}
   .bs-meta{font-family:var(--head);font-size:13px;color:var(--ink-soft)}
   .bs-range{color:var(--ink-soft)}
+  /* phones: title, author, date, count all on one line — date+count right-justified (title truncates if needed) */
+  @media(max-width:600px){
+    .bs-head{gap:0 8px;flex-wrap:nowrap;align-items:baseline}
+    .bs-title{font-size:14px;flex:0 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bs-author{font-size:11px;flex:0 0 auto;white-space:nowrap}
+    .bs-range{font-size:10px;white-space:nowrap}.bs-count{font-size:11px}
+    .bs-headspacer{flex:1 1 auto}
+  }
   .bs-noteline{font-family:var(--head);font-size:13px;font-style:italic;color:var(--accent-2);margin:0 0 14px}
   .pace-lead{font-family:var(--head);font-size:14px;color:var(--ink-soft);line-height:1.6;margin-bottom:18px;font-style:italic}
   /* reading-pace scatter: x = date finished, y = days spent; books drawn as bookshelf-style front covers on stems */
@@ -780,7 +789,23 @@
   .flame{transform-origin:center bottom;animation:flick .22s infinite alternate}
   @keyframes flick{from{transform:scaleY(1) rotate(-.6deg)}to{transform:scaleY(1.09) rotate(.6deg)}}
 
-  @media (max-width:620px){.clip{grid-template-columns:1fr;gap:6px}.clip .loc{padding-top:0}.wordmark{font-size:42px}.wordmark svg{width:62px;height:62px}}
+  @media (max-width:620px){
+    .clip{grid-template-columns:1fr;gap:3px;padding:11px 0}
+    .clip .loc{padding-top:0;flex-direction:row;align-items:center;gap:10px} /* page number + edit/x on one row */
+    .clip .clip-actions{margin-top:0}
+    .clip .edit-btn,.clip .del-btn{opacity:.7} /* no hover on touch — keep visible */
+    .clip .text{font-size:16px;line-height:1.5;margin-bottom:5px}
+    .clip .body{padding-left:11px}
+    .clip .meta{margin-top:5px}
+    /* phones: each density step tighter than the last (comfortable is already compact here) */
+    #list.dens-compact .clip{padding:7px 0}
+    #list.dens-compact .clip .text{font-size:14.5px;line-height:1.45;margin-bottom:4px}
+    #list.dens-compact .clip .meta{margin-top:4px}
+    #list.dens-condensed .clip{padding:4px 0}
+    #list.dens-condensed .clip .text{font-size:13px;line-height:1.4;margin-bottom:2px}
+    #list.dens-condensed .clip .meta{margin-top:2px}
+    .wordmark{font-size:42px}.wordmark svg{width:62px;height:62px}
+  }
   /* ===== phones ===== */
   @media (max-width:600px){
     .wrap{padding:0 14px 110px}
@@ -791,17 +816,32 @@
     .mast .sub{order:2;flex:0 0 100%;font-size:14px;margin-top:6px}
     .mast .count{order:3;flex:1 1 auto;align-self:center;text-align:left}
     .mast .ctrls{order:4;flex:0 0 auto;align-items:flex-end}
-    .mast .surprise{order:5;flex:0 0 100%}
+    .mast .surprise{order:5;flex:0 0 auto;margin-left:auto} /* keep the card its natural width, pinned right */
     .mast .visitor-info{order:6;flex:0 0 100%}
     .tabs{order:7;flex:0 0 100%}
     .mast .count b{font-size:24px}
-    /* tabs wrap to two rows (scrolling would clip the Libraries dropdown) with comfortable tap targets */
-    .tabs{flex-wrap:wrap;margin-top:4px;gap:6px}
-    .tab{padding:0 15px;font-size:14px}
-    .manage-btn{padding:0 13px;font-size:14px}
-    .book-head{padding-left:22px}
+    /* all tabs on one line (no overflow — that would clip the Libraries dropdown); shrink + icon-only Libraries to fit */
+    .tabs{flex-wrap:nowrap;margin-top:4px;gap:4px}
+    .tab{padding:0 8px;font-size:12px;height:38px}
+    .manage-btn{padding:0 8px;font-size:12px;height:38px;gap:3px}
+    .manage-btn>span:not(.caret){display:none} /* hide "Libraries" label, keep book icon + caret */
+    /* slimmer spines on phones so more books fit per shelf row (overrides the fixed size-class widths above) */
+    .shelf.size-s .book-spine{height:120px;width:30px}
+    .shelf.size-m .book-spine{height:146px;width:36px}
+    .shelf.size-l .book-spine{height:172px;width:44px}
+    .shelf.size-s .vtitle{font-size:9px}
+    .book-head{padding-left:36px;gap:8px} /* clear the ribbon (right edge ~26px) so the title doesn't run into it */
+    .book-head .title{font-size:19px}
+    .book-head .author{font-size:13px}
+    .shelf-title{font-size:13px}
+    .shelf{padding:16px 8px 0}
     .chip{padding:6px 3px}
     .toolbar{gap:9px}
+    /* explore subheaders on one line (scrolls if it can't quite fit; no dropdown inside, so overflow is safe) */
+    .xp-nav{flex-wrap:nowrap;overflow-x:auto;gap:0;-webkit-overflow-scrolling:touch}
+    .xp-nav::-webkit-scrollbar{display:none}
+    .xp-tab{margin-right:14px;font-size:12.5px;white-space:nowrap;padding:8px 1px}
+    .xp-tab:last-child{margin-right:0}
     /* big section headings get unwieldy on a phone */
     h1,.tl-stat b,.recap-stat b{line-height:1.1}
     .theme-map-canvas,.theme-map-canvas svg,.theme-detail{min-height:0}
@@ -809,13 +849,22 @@
   }
   /* touch devices have no pointer to track — the oil-lamp cursor never moves, so hide it */
   @media (pointer:coarse){#lampCursor,#lampHalo{display:none!important}
-    /* no hover on touch — don't expand the cover (it would stick); tapping a spine jumps to the book's highlights */
+    .shelf-title .hint-hover{display:none}.shelf-title .hint-tap{display:inline}
+    /* no hover on touch — don't expand on hover (it would stick); first tap reveals the cover (.show-cover), second tap jumps */
     .shelf .book-spine:hover .spine-inner{width:100%!important}
     .shelf .book-spine:hover .vtitle,.shelf .book-spine:hover .scount{opacity:1}
     .shelf .book-spine:hover .htitle,.shelf .book-spine:hover .cover-orn,.shelf .book-spine:hover .cauthor{opacity:0}
     .shelf .book-spine:hover .band,.shelf .book-spine:hover .spframe{opacity:1}
     .shelf .book-spine:hover .cover-corner{opacity:0}
-    .shelf .book-spine.reading:hover .cover-corner{opacity:1}}
+    .shelf .book-spine.reading:hover .cover-corner{opacity:1}
+    /* first-tap cover preview on touch — same crossfade/widths as the desktop hover */
+    .shelf .book-spine.show-cover{z-index:20}
+    .shelf .book-spine.show-cover .spine-inner{width:158px!important}
+    .shelf.size-s .book-spine.show-cover .spine-inner{width:118px!important}
+    .shelf.size-m .book-spine.show-cover .spine-inner{width:140px!important}
+    .shelf.size-l .book-spine.show-cover .spine-inner{width:158px!important}
+    .shelf .book-spine.show-cover .vtitle,.shelf .book-spine.show-cover .scount{opacity:0}
+    .shelf .book-spine.show-cover .htitle,.shelf .book-spine.show-cover .cover-orn,.shelf .book-spine.show-cover .cauthor{opacity:1}}
   @media (prefers-reduced-motion:reduce){*{transition:none!important}.flame,#lampHalo{animation:none!important}}
 
   /* ===== merged from iter5: theme map, recap, memory search, divider ===== */

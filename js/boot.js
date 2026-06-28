@@ -3,6 +3,7 @@
   let seen=false;try{seen=localStorage.getItem(GATE_SEEN_KEY)==="1";}catch(e){}
   if(seen&&libraryGate){libraryGate.classList.add("hidden");}
 })();
+window.addEventListener("resize",()=>{if(typeof syncBookHeadTop==="function")syncBookHeadTop();});
 libraryGate?.addEventListener("click",openLibraryGate);
 libraryGate?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openLibraryGate();}});
 document.getElementById("replayGate")?.addEventListener("click",()=>{
